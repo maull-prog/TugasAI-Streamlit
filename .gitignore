@@ -19,9 +19,3 @@ venv.bak/
 # OS generated files
 .DS_Store
 Thumbs.db
-
-# File Laporan Tugas (Hanya lokal, jangan di-push ke GitHub)
-LAPORAN_TAS_STREAMLIT.md
-LAPORAN*.md
-*.docx
-*.pdf
