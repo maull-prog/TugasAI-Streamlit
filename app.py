@@ -125,18 +125,24 @@ st.markdown("""
 # 2. HELPER KONEKSI MONGODB ATLAS & GROQ AI DENGAN CACHE & SECRETS
 # ------------------------------------------------------------------------------
 def get_mongodb_uri():
-    """Mengambil MongoDB URI dari st.secrets atau session_state."""
-    if "MONGODB_URI" in st.secrets:
-        return st.secrets["MONGODB_URI"]
-    elif "custom_mongo_uri" in st.session_state and st.session_state.custom_mongo_uri:
+    """Mengambil MongoDB URI dari st.secrets atau session_state dengan aman."""
+    try:
+        if "MONGODB_URI" in st.secrets and st.secrets["MONGODB_URI"]:
+            return st.secrets["MONGODB_URI"]
+    except Exception:
+        pass
+    if "custom_mongo_uri" in st.session_state and st.session_state.custom_mongo_uri:
         return st.session_state.custom_mongo_uri
     return None
 
 def get_groq_api_key():
-    """Mengambil Groq API Key dari st.secrets atau session_state."""
-    if "GROQ_API_KEY" in st.secrets:
-        return st.secrets["GROQ_API_KEY"]
-    elif "custom_groq_key" in st.session_state and st.session_state.custom_groq_key:
+    """Mengambil Groq API Key dari st.secrets atau session_state dengan aman."""
+    try:
+        if "GROQ_API_KEY" in st.secrets and st.secrets["GROQ_API_KEY"]:
+            return st.secrets["GROQ_API_KEY"]
+    except Exception:
+        pass
+    if "custom_groq_key" in st.session_state and st.session_state.custom_groq_key:
         return st.session_state.custom_groq_key
     return None
 
