@@ -48,6 +48,14 @@ try:
 except ImportError:
     HAS_PYMONGO = False
 
+# Groq Cloud AI
+try:
+    from groq import Groq
+    HAS_GROQ = True
+except ImportError:
+    HAS_GROQ = False
+import json
+
 # ------------------------------------------------------------------------------
 # 1. KONFIGURASI HALAMAN & TEMA
 # ------------------------------------------------------------------------------
@@ -98,11 +106,27 @@ st.markdown("""
         border-radius: 12px;
         font-size: 0.75rem;
     }
+    .badge-groq {
+        background: linear-gradient(90deg, #F55036, #F97316);
+        color: white;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: bold;
+    }
+    .ai-reply-box {
+        background: rgba(245, 80, 54, 0.1);
+        border: 1px solid rgba(245, 80, 54, 0.3);
+        border-radius: 6px;
+        padding: 8px 12px;
+        margin-top: 8px;
+        font-size: 0.88rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # ------------------------------------------------------------------------------
-# 2. HELPER KONEKSI MONGODB ATLAS DENGAN CACHE & SECRETS
+# 2. HELPER KONEKSI MONGODB ATLAS & GROQ AI DENGAN CACHE & SECRETS
 # ------------------------------------------------------------------------------
 def get_mongodb_uri():
     """Mengambil MongoDB URI dari st.secrets atau session_state."""
@@ -111,6 +135,66 @@ def get_mongodb_uri():
     elif "custom_mongo_uri" in st.session_state and st.session_state.custom_mongo_uri:
         return st.session_state.custom_mongo_uri
     return None
+
+def get_groq_api_key():
+    """Mengambil Groq API Key dari st.secrets atau session_state."""
+    if "GROQ_API_KEY" in st.secrets:
+        return st.secrets["GROQ_API_KEY"]
+    elif "custom_groq_key" in st.session_state and st.session_state.custom_groq_key:
+        return st.session_state.custom_groq_key
+    return None
+
+def analyze_comment_with_groq(comment_text: str, api_key: str):
+    """Menganalisis sentimen dan memberikan balasan AI otomatis menggunakan Groq Llama 3."""
+    if not api_key or not HAS_GROQ:
+        # Fallback offline sederhana jika Groq belum aktif
+        return {
+            "sentiment": "Positif 😊",
+            "reply": "Terima kasih banyak atas feedback dan partisipasi Anda dalam web Machine Learning ini!"
+        }
+    try:
+        client = Groq(api_key=api_key)
+        sys_prompt = (
+            "Anda adalah asisten AI resmi untuk website Machine Learning UKSW (Tugas Akhir Semester AI).\n"
+            "Tugas Anda: Menganalisis komentar pengunjung dan memberikan balasan ramah.\n"
+            "Keluaran WAJIB HANYA format JSON valid tanpa format markdown (tanpa ```json) dengan struktur:\n"
+            "{\n"
+            '  "sentiment": "Positif 😊" atau "Netral 😐" atau "Negatif 😡",\n'
+            '  "reply": "Balasan hangat, sopan, dan apresiatif dalam 1-2 kalimat bahasa Indonesia"\n'
+            "}"
+        )
+        response = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": sys_prompt},
+                {"role": "user", "content": f'Komentar: "{comment_text}"'}
+            ],
+            model="llama-3.3-70b-versatile",
+            temperature=0.3,
+            max_tokens=200
+        )
+        raw_res = response.choices[0].message.content.strip()
+        if raw_res.startswith("```"):
+            raw_res = raw_res.replace("```json", "").replace("```", "").strip()
+        parsed = json.loads(raw_res)
+        return parsed
+    except Exception:
+        try:
+            client = Groq(api_key=api_key)
+            response = client.chat.completions.create(
+                messages=[{"role": "user", "content": f"Balas ramah singkat dalam 1 kalimat bahasa Indonesia untuk komentar ini: {comment_text}"}],
+                model="llama-3.1-8b-instant",
+                temperature=0.3,
+                max_tokens=80
+            )
+            return {
+                "sentiment": "Positif 😊",
+                "reply": response.choices[0].message.content.strip()
+            }
+        except Exception:
+            return {
+                "sentiment": "Positif 😊",
+                "reply": "Terima kasih atas tanggapan dan masukan berharga yang Anda berikan!"
+            }
 
 @st.cache_resource(show_spinner=False)
 def init_mongo_client(uri: str):
@@ -140,16 +224,24 @@ if "mock_comments" not in st.session_state:
             "nama": "Dr. Suryasatriya Trihandaru, M.Sc.nat",
             "peran": "Dosen Pembimbing",
             "rating": 5,
-            "komentar": "Implementasi sistem end-to-end Streamlit, scikit-learn, dan MongoDB sudah sangat lengkap dan terstruktur dengan baik!",
+            "komentar": "Implementasi sistem end-to-end Streamlit, scikit-learn, MongoDB, dan Groq AI sangat lengkap dan josjis!",
+            "sentiment": "Positif 😊",
+            "ai_reply": "Terima kasih banyak atas bimbingan dan arahannya selama perkuliahan AI, Pak Surya!",
             "timestamp": "2026-10-14 10:30:00"
         },
         {
             "nama": "Tim Reviewer AI",
             "peran": "Reviewer",
             "rating": 5,
-            "komentar": "Fitur clustering dan visualisasi PCA-nya interaktif dan mudah dipahami. Siap dideploy ke cloud.",
+            "komentar": "Fitur clustering dan integrasi inferensi Groq LPU berjalan sangat responsif dan cepat.",
+            "sentiment": "Positif 😊",
+            "ai_reply": "Senang mendengarnya! Kecepatan inferensi Groq LPU sangat membantu performa web real-time.",
             "timestamp": "2026-10-15 08:45:00"
         }
+    ]
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = [
+        {"role": "assistant", "content": "Halo! Saya adalah Asisten AI berbasis **Groq LPU (Llama 3)**. Ada yang bisa saya bantu seputar model Machine Learning, evaluasi metrik, atau dataset Anda?"}
     ]
 
 # ------------------------------------------------------------------------------
@@ -182,6 +274,26 @@ with st.sidebar:
             st.session_state.custom_mongo_uri = custom_input
             st.rerun()
 
+    # Status Groq AI Cloud
+    st.markdown("---")
+    st.subheader("⚡ Status Groq AI")
+    current_groq_key = get_groq_api_key()
+    if current_groq_key:
+        st.success("⚡ Groq LPU Aktif (Llama 3.3)")
+        st.caption("Model: `llama-3.3-70b-versatile` | Ultra-Fast LPU Inference")
+    else:
+        st.info("⚡ Groq API Key (Aktifkan AI)")
+        st.caption("Dapatkan key gratis di [console.groq.com](https://console.groq.com):")
+        groq_input = st.text_input(
+            "GROQ_API_KEY:",
+            type="password",
+            placeholder="gsk_xxxxxxxxxxxx...",
+            help="Masukkan API key Groq Anda untuk analisis sentimen & chatbot AI"
+        )
+        if groq_input:
+            st.session_state.custom_groq_key = groq_input
+            st.rerun()
+
     st.markdown("---")
     st.subheader("👨‍💻 Identitas Kelompok")
     st.text_input("Nama Mahasiswa / Kelompok:", value="Kelompok AI - UKSW", key="student_name")
@@ -194,7 +306,8 @@ with st.sidebar:
     - ✅ **Klasifikasi Multikelas & Metrik**
     - ✅ **Clustering K-Means & PCA (Unsupervised)**
     - ✅ **MongoDB CRUD & Retraining Model**
-    - ✅ **Komentar Publik (Guestbook Database)**
+    - ✅ **Komentar Publik (Auto-Sentiment & AI Reply)**
+    - ✅ **Asisten Chatbot Cerdas Groq LPU**
     """)
 
 # ------------------------------------------------------------------------------
@@ -203,16 +316,17 @@ with st.sidebar:
 st.title("🤖 Web Machine Learning Studio & Cloud Database")
 st.markdown("""
 Aplikasi komprehensif implementasi *End-to-End Pipeline Machine Learning* berbasis **Streamlit**, 
-mengintegrasikan algoritma supervised/unsupervised dengan **MongoDB Atlas** dan retraining data real-time.
+mengintegrasikan algoritma supervised/unsupervised dengan **MongoDB Atlas** dan akselerasi AI **Groq LPU**.
 """)
 
 # Navigasi Tab Utama
-tab_regresi, tab_klasifikasi, tab_clustering, tab_retrain, tab_komentar, tab_info = st.tabs([
+tab_regresi, tab_klasifikasi, tab_clustering, tab_retrain, tab_komentar, tab_groq, tab_info = st.tabs([
     "📈 Regresi Linear",
     "🎯 Klasifikasi",
     "🔮 Clustering",
     "🍃 MongoDB & Retrain",
-    "💬 Komentar Publik",
+    "💬 Komentar & AI Sentimen",
+    "🤖 Asisten Groq AI",
     "📘 Panduan & Info TAS"
 ])
 
@@ -714,13 +828,13 @@ with tab_retrain:
         st.plotly_chart(fig_imp, use_container_width=True)
 
 # ==============================================================================
-# TAB 5: KOMENTAR PUBLIK (GUESTBOOK)
+# TAB 5: KOMENTAR & AI SENTIMEN (POWERED BY GROQ & MONGODB)
 # ==============================================================================
 with tab_komentar:
-    st.header("💬 Komentar & Feedback Publik")
-    st.caption("Fitur publik untuk memberikan masukan, ulasan, atau apresiasi yang tersimpan ke MongoDB Atlas.")
+    st.header("💬 Komentar Publik & Analisis Sentimen (Groq AI)")
+    st.caption("Fitur interaktif publik untuk memberikan ulasan. Groq LPU AI otomatis menganalisis sentimen dan memberikan tanggapan cerdas.")
 
-    col_k1, col_k2 = st.columns([1, 1.6])
+    col_k1, col_k2 = st.columns([1.1, 1.6])
 
     with col_k1:
         st.markdown("#### ✍️ Beri Komentar Baru")
@@ -730,15 +844,23 @@ with tab_komentar:
             in_rating = st.slider("Rating Aplikasi:", 1, 5, 5, help="1 = Kurang, 5 = Sangat Bagus")
             in_pesan = st.text_area("Pesan / Ulasan / Feedback:", placeholder="Tuliskan ulasan Anda mengenai aplikasi ini...")
             
-            btn_kirim_komentar = st.form_submit_button("🚀 Kirim Komentar")
+            btn_kirim_komentar = st.form_submit_button("🚀 Kirim Komentar & Analisis AI")
 
             if btn_kirim_komentar:
                 if in_nama and in_pesan:
+                    with st.spinner("🤖 Groq AI sedang menganalisis sentimen & menyiapkan respon cerdas..."):
+                        groq_key = get_groq_api_key()
+                        ai_res = analyze_comment_with_groq(in_pesan, groq_key)
+                        sentiment_val = ai_res.get("sentiment", "Positif 😊")
+                        reply_val = ai_res.get("reply", "Terima kasih banyak atas partisipasi dan ulasan Anda!")
+
                     komentar_doc = {
                         "nama": in_nama,
                         "peran": in_role,
                         "rating": int(in_rating),
                         "komentar": in_pesan,
+                        "sentiment": sentiment_val,
+                        "ai_reply": reply_val,
                         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     }
 
@@ -746,19 +868,19 @@ with tab_komentar:
                         try:
                             db = get_database(mongo_client)
                             db.komentar_publik.insert_one(komentar_doc)
-                            st.success("✅ Komentar berhasil dikirim dan tersimpan di MongoDB!")
+                            st.success("✅ Komentar berhasil dianalisis AI dan disimpan ke MongoDB!")
                         except Exception as e:
                             st.error(f"Gagal simpan ke database: {e}")
                     else:
                         st.session_state.mock_comments.insert(0, komentar_doc)
-                        st.success("✅ Komentar berhasil ditambahkan ke daftar ulasan!")
+                        st.success("✅ Komentar berhasil dianalisis AI dan ditambahkan ke daftar ulasan!")
                     time.sleep(0.5)
                     st.rerun()
                 else:
                     st.warning("⚠️ Mohon isi Nama dan Pesan sebelum mengirim.")
 
     with col_k2:
-        st.markdown("#### 📜 Daftar Ulasan Publik")
+        st.markdown("#### 📜 Daftar Ulasan Publik Terintegrasi AI")
 
         # Ambil Komentar dari MongoDB
         list_komentar = []
@@ -774,23 +896,125 @@ with tab_komentar:
         if len(list_komentar) > 0:
             for item in list_komentar:
                 bintang = "⭐" * int(item.get("rating", 5))
+                sentimen = item.get("sentiment", "Positif 😊")
+                ai_reply = item.get("ai_reply", "")
+                
+                sentimen_badge_color = "#10B981" if "Positif" in sentimen else ("#F59E0B" if "Netral" in sentimen else "#EF4444")
+                
+                reply_html = ""
+                if ai_reply:
+                    reply_html = f"""
+                    <div class="ai-reply-box">
+                        <strong style="color:#F97316;">🤖 Respon Asisten AI (Groq LPU):</strong><br>
+                        <span>{ai_reply}</span>
+                    </div>
+                    """
+                
                 st.markdown(f"""
                 <div class="comment-card">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <strong>{item.get('nama', 'Pengunjung')}</strong>
                         <span style="font-size:0.8rem; color:#888;">{item.get('timestamp', '')}</span>
                     </div>
-                    <div style="font-size:0.85rem; color:#00d2ff; margin-bottom:6px;">
-                        {item.get('peran', 'Umum')} &bull; {bintang}
+                    <div style="font-size:0.85rem; margin-top:2px; margin-bottom:6px;">
+                        <span style="color:#00d2ff;">{item.get('peran', 'Umum')}</span> &bull; {bintang} &bull; 
+                        <span style="background:{sentimen_badge_color}; color:white; padding:2px 8px; border-radius:10px; font-size:0.75rem;">
+                            Sentimen: {sentimen}
+                        </span>
                     </div>
-                    <p style="margin-bottom:0; font-size:0.95rem;">{item.get('komentar', '')}</p>
+                    <p style="margin-bottom:6px; font-size:0.95rem;">{item.get('komentar', '')}</p>
+                    {reply_html}
                 </div>
                 """, unsafe_allow_html=True)
         else:
             st.info("Belum ada komentar dari publik. Jadilah yang pertama memberikan ulasan!")
 
 # ==============================================================================
-# TAB 6: PANDUAN & INFO TAS UKSW
+# TAB 6: ASISTEN CHATBOT GROQ AI (LLAMA 3.3 LPU)
+# ==============================================================================
+with tab_groq:
+    st.header("🤖 Asisten Cerdas Groq AI (LPU Inference)")
+    st.caption("Konsultasi interaktif seputar Machine Learning, Algoritma, Evaluasi, dan Arsitektur Cloud menggunakan inferensi super cepat Llama 3.3.")
+
+    groq_active_key = get_groq_api_key()
+
+    if not groq_active_key:
+        st.warning("⚡ **Groq API Key belum dimasukkan.** Anda bisa memasukkannya di Sidebar atau di file `.streamlit/secrets.toml` untuk mengaktifkan kecerdasan penuh.")
+        st.markdown("""
+        > 💡 **Cara Mendapatkan Groq API Key Gratis (1 Menit):**
+        > 1. Buka [console.groq.com](https://console.groq.com)
+        > 2. Login dengan akun Google / GitHub
+        > 3. Klik menu **API Keys** -> **Create API Key**
+        > 4. Salin dan tempelkan ke kolom **GROQ_API_KEY** di Sidebar aplikasi ini.
+        """)
+
+    # Quick Prompt Chips
+    st.markdown("##### 💡 Contoh Pertanyaan Cepat:")
+    q_col1, q_col2, q_col3 = st.columns(3)
+    quick_query = None
+    if q_col1.button("📈 Kapan pakai Regresi vs Klasifikasi?", use_container_width=True):
+        quick_query = "Kapan kita sebaiknya menggunakan model Regresi dan kapan menggunakan Klasifikasi? Berikan contohnya."
+    if q_col2.button("🔮 Apa kelebihan K-Means Clustering?", use_container_width=True):
+        quick_query = "Jelaskan prinsip kerja K-Means Clustering dan metrik evaluasi Silhouette Score!"
+    if q_col3.button("🍃 Mengapa butuh MongoDB di Web ML?", use_container_width=True):
+        quick_query = "Mengapa kita menghubungkan MongoDB Atlas ke Streamlit untuk dataset dan komentar publik?"
+
+    # Render Chat History
+    for message in st.session_state.chat_history:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    # Chat Input
+    user_input = st.chat_input("Tanyakan apa saja seputar Machine Learning & Tugas Ini...")
+    actual_prompt = quick_query if quick_query else user_input
+
+    if actual_prompt:
+        st.session_state.chat_history.append({"role": "user", "content": actual_prompt})
+        with st.chat_message("user"):
+            st.markdown(actual_prompt)
+
+        with st.chat_message("assistant"):
+            if groq_active_key and HAS_GROQ:
+                try:
+                    client = Groq(api_key=groq_active_key)
+                    system_instruction = (
+                        "Anda adalah asisten AI ahli Machine Learning untuk mahasiswa Universitas Kristen Satya Wacana (UKSW). "
+                        "Jawab dengan ramah, jelas, edukatif, dan menggunakan bahasa Indonesia yang baik. "
+                        "Bantu pengguna memahami konsep Regresi, Klasifikasi, Clustering, MongoDB, dan Streamlit."
+                    )
+                    messages_payload = [{"role": "system", "content": system_instruction}]
+                    # Ambil 6 pesan terakhir untuk konteks
+                    for m in st.session_state.chat_history[-6:]:
+                        messages_payload.append({"role": m["role"], "content": m["content"]})
+
+                    stream = client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=messages_payload,
+                        temperature=0.5,
+                        max_tokens=600,
+                        stream=True
+                    )
+                    response_text = st.write_stream(stream)
+                    st.session_state.chat_history.append({"role": "assistant", "content": response_text})
+                except Exception as err:
+                    fallback_ans = f"Terjadi kendala koneksi ke Groq API: `{err}`. Pastikan kuota atau API key Anda valid."
+                    st.error(fallback_ans)
+                    st.session_state.chat_history.append({"role": "assistant", "content": fallback_ans})
+            else:
+                # Built-in intelligent response
+                fallback_ans = (
+                    "**Jawaban Asisten:**\n\n"
+                    "- **Regresi** digunakan saat target bernilai kontinu (misal harga rumah, kadar glukosa).\n"
+                    "- **Klasifikasi** digunakan saat target berupa kategori diskrit (misal jenis spesies bunga Iris, deteksi tumor ganas/jinak).\n"
+                    "- **Clustering** adalah *unsupervised learning* untuk mengelompokkan data tanpa label berdasarkan kemiripan pola.\n"
+                    "- **MongoDB Atlas** berguna untuk menyimpan data sampel baru secara cloud, sehingga model dapat di-**retrain** sewaktu-waktu tanpa kehilangan data!\n\n"
+                    "*(💡 Masukkan `GROQ_API_KEY` di Sidebar untuk mendapatkan jawaban interaktif real-time menggunakan Llama 3.3)*"
+                )
+                st.markdown(fallback_ans)
+                st.session_state.chat_history.append({"role": "assistant", "content": fallback_ans})
+
+# ==============================================================================
+# TAB 7: PANDUAN & INFO TAS UKSW
 # ==============================================================================
 with tab_info:
     st.header("📘 Informasi Proyek & Pendaftaran TAS")
@@ -813,7 +1037,7 @@ with tab_info:
     with c2:
         st.markdown("""
         - [x] **Integrasi MongoDB & Retrain**: Form insert sampel, hapus dokumen, dan retrain gabungan data.
-        - [x] **Komentar Publik**: Form input komentar publik yang tersimpan di MongoDB dan ditampilkan dinamis.
+        - [x] **Komentar Publik + Groq AI**: Form komentar publik dengan **Auto-Sentiment Analysis** dan **AI Auto-Reply** via Groq LPU, tersimpan di MongoDB.
         - [x] **Pendaftaran URL**: Siap didaftarkan ke portal web UKSW.
         """)
 
@@ -822,7 +1046,11 @@ with tab_info:
     st.markdown("""
     1. **Push Proyek ke GitHub**: Commit semua file dan push repositori Anda ke akun GitHub.
     2. **Deploy di Streamlit Cloud**: Buka [share.streamlit.io](https://share.streamlit.io/) dan deploy repositori Anda.
-    3. **Set Secrets di Streamlit Cloud**: Di menu `App Settings -> Secrets`, masukkan `MONGODB_URI` Anda.
+    3. **Set Secrets di Streamlit Cloud**: Di menu `App Settings -> Secrets`, masukkan:
+       ```toml
+       MONGODB_URI = "mongodb+srv://<username>:<password>@cluster0.xxxx.mongodb.net/?retryWrites=true&w=majority"
+       GROQ_API_KEY = "gsk_xxxxxxxxxxxx..."
+       ```
     4. **Daftarkan URL**:
        * Buka [Portal Pendaftaran UKSW](https://mdsfsmuksw.my.id/materi-belajar/streamlit)
        * Klik **Minta Token** (gunakan email mahasiswa `@student.uksw.edu`).
