@@ -600,7 +600,7 @@ def page_home():
     n_total_models = db.models.count_documents({}) if db is not None else len(st.session_state.mock_models)
     st.caption(f"💬 Total Komentar Publik: **{n_comments}** | 📦 Total Model Tersimpan: **{n_total_models}**")
 
-    st.markdown('<div class="footer">Dashboard Machine Learning Studio &bull; Cloud Database Atlas</div>', unsafe_allow_html=True)
+    st.markdown('<div class="footer">Dashboard Machine Learning Studio &bull; By Pradika Maula &bull; Cloud Database Atlas</div>', unsafe_allow_html=True)
 
 # ============================================================================
 # HALAMAN 2: REGRESI LINEAR
@@ -1092,8 +1092,8 @@ st.sidebar.markdown("""
         <div style="font-size: 1.45rem; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; font-family: 'Space Grotesk', sans-serif; margin-top: 2px;">
             DASHBOARD <span style="background: linear-gradient(90deg, #00F5FF, #FF007A); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">ML</span>
         </div>
-        <div style="font-size: 0.78rem; color: #94a3b8; font-weight: 500;">
-            Aplikasi Interaktif &bull; Tugas Kuliah AI
+        <div style="font-size: 0.8rem; color: #94a3b8; font-weight: 500; margin-top: 4px;">
+            By <span style="color: #ffffff; font-weight: 700;">Pradika Maula</span> &bull; Tugas Kuliah AI
         </div>
     </div>
 """, unsafe_allow_html=True)
