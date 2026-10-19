@@ -68,101 +68,235 @@ except ImportError:
     HAS_GROQ = False
 
 # ----------------------------------------------------------------------------
-# 1. Konfigurasi Halaman & Tema
+# 1. Konfigurasi Halaman & Tema Hedon / Pro Cyberpunk
 # ----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Dashboard Machine Learning",
-    page_icon="🧠",
+    page_title="NEXUS ML Studio // Quantum AI",
+    page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# Custom CSS - Ultra Clean Dark Aesthetics (Sesuai Desain Modern)
+# Custom CSS - Luxury Cyberpunk & Hologram Glassmorphism
 st.markdown("""
 <style>
-    .stApp { background-color: #0e1117; }
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&display=swap');
+
+    html, body, [class*="css"] {
+        font-family: 'Outfit', sans-serif;
+    }
     
-    .gradient-text {
-        background: linear-gradient(90deg, #4F46E5, #06B6D4);
+    .stApp {
+        background: radial-gradient(1200px 600px at 50% -10%, rgba(121, 40, 202, 0.25), transparent),
+                    radial-gradient(900px 500px at 95% 85%, rgba(0, 245, 255, 0.15), transparent),
+                    #07090e;
+        color: #f1f5f9;
+    }
+
+    /* Gradient Typography */
+    .gradient-hero {
+        background: linear-gradient(135deg, #00F5FF 0%, #7928CA 45%, #FF007A 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        font-weight: 800;
+        font-weight: 900;
+        letter-spacing: -1px;
+        filter: drop-shadow(0 0 25px rgba(0, 245, 255, 0.3));
     }
-    .main-title-container {
-        font-size: 2.3rem;
+    .hero-title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 2.7rem;
         font-weight: 800;
-        margin-bottom: 0.2rem;
+        line-height: 1.15;
+        margin-bottom: 0.4rem;
     }
-    .custom-card {
-        background-color: #1f2937;
-        border-radius: 12px;
-        padding: 20px;
-        border: 1px solid #374151;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        margin-bottom: 12px;
+    .hero-subtitle {
+        color: #94a3b8;
+        font-size: 1.05rem;
+        font-weight: 400;
+        max-width: 850px;
+        line-height: 1.5;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Luxury Hologram Cards */
+    .hedon-card {
+        background: rgba(15, 20, 32, 0.65) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        border-radius: 18px !important;
+        padding: 24px !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6) !important;
+        position: relative !important;
+        overflow: hidden !important;
+        transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        margin-bottom: 14px;
         height: 100%;
     }
-    .custom-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.4);
-        border-color: #06B6D4;
+    .hedon-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; height: 3px;
+        background: linear-gradient(90deg, #FF007A, #7928CA, #00F5FF);
+        opacity: 0.9;
     }
-    .card-title {
-        color: #f3f4f6;
-        font-size: 1.15rem;
+    .hedon-card:hover {
+        transform: translateY(-5px) !important;
+        border-color: rgba(0, 245, 255, 0.45) !important;
+        box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.8), 0 0 25px rgba(0, 245, 255, 0.25) !important;
+    }
+    .card-badge {
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        padding: 3px 10px;
+        border-radius: 6px;
+        display: inline-block;
+        margin-bottom: 10px;
+    }
+    .badge-reg { background: rgba(0, 245, 255, 0.15); color: #00F5FF; border: 1px solid rgba(0, 245, 255, 0.3); }
+    .badge-clf { background: rgba(255, 0, 122, 0.15); color: #FF007A; border: 1px solid rgba(255, 0, 122, 0.3); }
+    .badge-clu { background: rgba(121, 40, 202, 0.2); color: #C084FC; border: 1px solid rgba(121, 40, 202, 0.4); }
+
+    .hedon-title {
+        color: #f8fafc;
+        font-size: 1.25rem;
         font-weight: 700;
         margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
-    .card-desc {
-        color: #9ca3af;
-        font-size: 0.9rem;
-        line-height: 1.4;
+    .hedon-desc {
+        color: #94a3b8;
+        font-size: 0.92rem;
+        line-height: 1.5;
+        margin-bottom: 14px;
+    }
+
+    /* Pro Buttons with Neon Sheen */
+    .stButton > button {
+        background: linear-gradient(135deg, #7928CA 0%, #00F5FF 100%) !important;
+        color: #ffffff !important;
+        font-family: 'Space Grotesk', sans-serif !important;
+        font-weight: 700 !important;
+        border: none !important;
+        border-radius: 12px !important;
+        padding: 0.65rem 1.4rem !important;
+        box-shadow: 0 4px 20px rgba(0, 245, 255, 0.3) !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        letter-spacing: 0.5px !important;
+    }
+    .stButton > button:hover {
+        transform: translateY(-2px) scale(1.02) !important;
+        box-shadow: 0 8px 30px rgba(121, 40, 202, 0.6), 0 0 20px rgba(0, 245, 255, 0.6) !important;
+    }
+
+    /* Metric Cards with Glowing Border */
+    [data-testid="stMetric"] {
+        background: rgba(15, 20, 32, 0.7) !important;
+        backdrop-filter: blur(16px) !important;
+        border: 1px solid rgba(121, 40, 202, 0.35) !important;
+        border-radius: 16px !important;
+        box-shadow: 0 4px 25px rgba(0, 0, 0, 0.35) !important;
+        padding: 16px 20px !important;
+        transition: border-color 0.3s ease;
+    }
+    [data-testid="stMetric"]:hover {
+        border-color: rgba(0, 245, 255, 0.5) !important;
     }
     [data-testid="stMetricValue"] {
-        font-size: 1.8rem;
-        font-weight: 700;
-        color: #38bdf8;
+        font-family: 'Space Grotesk', sans-serif !important;
+        font-size: 2.2rem !important;
+        font-weight: 800 !important;
+        background: linear-gradient(90deg, #00F5FF, #7928CA) !important;
+        -webkit-background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
     }
-    [data-testid="stMetric"] {
-        background-color: #1e293b;
-        border: 1px solid #334155;
-        padding: 12px 16px;
-        border-radius: 10px;
+
+    /* Sidebar Navigation Highlighting */
+    div[data-testid="stSidebar"] {
+        background-color: #0b0e17 !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.06);
     }
-    .status-badge {
-        padding: 6px 12px;
-        border-radius: 8px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        display: inline-block;
+    div[data-testid="stSidebar"] div[role="radiogroup"] label {
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 12px;
+        padding: 10px 16px;
         margin-bottom: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        transition: all 0.25s ease;
     }
-    .status-connected {
-        background-color: rgba(16, 185, 129, 0.15);
+    div[data-testid="stSidebar"] div[role="radiogroup"] label:hover {
+        background: rgba(0, 245, 255, 0.08);
+        border-color: rgba(0, 245, 255, 0.35);
+        transform: translateX(4px);
+    }
+
+    /* Glowing Pulsing Status */
+    .pulse-online {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(16, 185, 129, 0.12);
         color: #10B981;
-        border: 1px solid rgba(16, 185, 129, 0.3);
+        border: 1px solid rgba(16, 185, 129, 0.35);
+        padding: 6px 14px;
+        border-radius: 30px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
     }
-    .status-disconnected {
-        background-color: rgba(239, 68, 68, 0.15);
-        color: #EF4444;
-        border: 1px solid rgba(239, 68, 68, 0.3);
+    .pulse-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #10B981;
+        box-shadow: 0 0 12px #10B981;
+        animation: pulseAnimation 1.8s infinite;
     }
+    @keyframes pulseAnimation {
+        0% { transform: scale(0.95); opacity: 0.7; }
+        50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 16px #10B981; }
+        100% { transform: scale(0.95); opacity: 0.7; }
+    }
+
+    /* AI Reply Box Modern */
     .ai-reply-box {
-        background: rgba(79, 70, 229, 0.12);
-        border-left: 3px solid #06B6D4;
-        border-radius: 6px;
-        padding: 10px 14px;
-        margin-top: 8px;
-        font-size: 0.9rem;
+        background: linear-gradient(135deg, rgba(121, 40, 202, 0.15) 0%, rgba(0, 245, 255, 0.08) 100%);
+        border: 1px solid rgba(0, 245, 255, 0.25);
+        border-radius: 12px;
+        padding: 12px 16px;
+        margin-top: 10px;
+        font-size: 0.92rem;
     }
+
+    /* Modern Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 10px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 10px;
+        padding: 8px 18px;
+        background-color: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        font-weight: 600;
+    }
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #7928CA 0%, #00F5FF 100%) !important;
+        color: white !important;
+        border: none !important;
+        box-shadow: 0 4px 15px rgba(0, 245, 255, 0.3) !important;
+    }
+    
     .footer {
         text-align: center;
-        color: #6b7280;
+        color: #475569;
         font-size: 0.85rem;
-        padding: 24px 0 10px 0;
-        border-top: 1px solid #1f2937;
-        margin-top: 40px;
+        padding: 30px 0 15px 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        margin-top: 50px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -363,48 +497,80 @@ def feature_inputs(base, feats, prefix, ncols=3):
     return vals
 
 # ============================================================================
-# HALAMAN 1: DASHBOARD BERANDA
+# ============================================================================
+# HALAMAN 1: DASHBOARD BERANDA (HEDON / PRO DEVELOPER)
 # ============================================================================
 def page_home():
-    st.markdown('<h1 class="main-title-container">🧠🤖 <span class="gradient-text">Dashboard Machine Learning</span></h1>', unsafe_allow_html=True)
-    st.markdown("Aplikasi interaktif pemodelan **Regresi Linear**, **Klasifikasi**, dan **Clustering** terintegrasi *real-time* dengan **MongoDB Atlas** dan akselerasi AI **Groq LPU**.")
-    st.write("")
+    st.markdown("""
+        <div class="hero-title">⚡ <span class="gradient-hero">NEXUS ML STUDIO</span></div>
+        <div class="hero-subtitle">
+            Platform predictive analytics & machine learning generasi mutakhir. 
+            Mengintegrasikan pipeline pemodelan terdistribusi dengan <b>MongoDB Atlas Cloud</b>, 
+            real-time retraining, dan akselerasi inferensi ultra-cepat <b>Groq LPU (Llama 3.3)</b>.
+        </div>
+    """, unsafe_allow_html=True)
 
-    # Grid 3 Kartu Modul Utama
+    # Grid 3 Kartu Modul Utama Bergaya Hologram Hedon
     c1, c2, c3 = st.columns(3)
     with c1:
         st.markdown('''
-            <div class="custom-card">
-                <div class="card-title">📈 Regresi Linear</div>
-                <div class="card-desc">Prediksi nilai kontinu dengan dataset <b>Diabetes</b> & <b>California Housing</b>.</div>
+            <div class="hedon-card">
+                <span class="card-badge badge-reg">SUPERVISED MODEL</span>
+                <div class="hedon-title">📈 Regresi Linear</div>
+                <div class="hedon-desc">
+                    Prediksi nilai kontinu berpresisi tinggi dengan evaluasi <b>R² Score, MAE, RMSE</b>, dan simulator interaktif pada dataset <i>Diabetes</i> & <i>California Housing</i>.
+                </div>
             </div>
         ''', unsafe_allow_html=True)
-        st.button("🚀 Modul Regresi", key="btn_nav_reg", use_container_width=True, on_click=change_page, args=("📈 Regresi Linear",))
+        st.button("🚀 Luncurkan Modul Regresi", key="btn_nav_reg", use_container_width=True, on_click=change_page, args=("📈 Regresi Linear",))
+
     with c2:
         st.markdown('''
-            <div class="custom-card">
-                <div class="card-title">🧪 Klasifikasi Multi-Algoritma</div>
-                <div class="card-desc">Prediksi kategori dengan dataset <b>Iris</b>, <b>Wine</b>, & <b>Breast Cancer</b>.</div>
+            <div class="hedon-card">
+                <span class="card-badge badge-clf">MULTI-ALGORITHM</span>
+                <div class="hedon-title">🧪 Klasifikasi Cerdas</div>
+                <div class="hedon-desc">
+                    Pemodelan kategorikal multi-kelas & biner (Random Forest, LogReg, KNN) dilengkapi <b>Confusion Matrix interaktif</b> dan simulator probabilitas kelas.
+                </div>
             </div>
         ''', unsafe_allow_html=True)
-        st.button("🚀 Modul Klasifikasi", key="btn_nav_clf", use_container_width=True, on_click=change_page, args=("🧪 Klasifikasi",))
+        st.button("🚀 Luncurkan Modul Klasifikasi", key="btn_nav_clf", use_container_width=True, on_click=change_page, args=("🧪 Klasifikasi",))
+
     with c3:
         st.markdown('''
-            <div class="custom-card">
-                <div class="card-title">🔵 Clustering K-Means</div>
-                <div class="card-desc">Pengelompokan data tak berlabel dengan dataset <b>Iris</b>, <b>Wine</b>, & <b>Breast Cancer</b>.</div>
+            <div class="hedon-card">
+                <span class="card-badge badge-clu">UNSUPERVISED AI</span>
+                <div class="hedon-title">🔵 Clustering K-Means</div>
+                <div class="hedon-desc">
+                    Pengelompokan pola data tak berlabel dengan <b>Proyeksi PCA 2D</b>, evaluasi klaster <b>Silhouette Score</b>, dan analisis kurva Elbow Method.
+                </div>
             </div>
         ''', unsafe_allow_html=True)
-        st.button("🚀 Modul Clustering", key="btn_nav_clu", use_container_width=True, on_click=change_page, args=("🔵 Clustering",))
+        st.button("🚀 Luncurkan Modul Clustering", key="btn_nav_clu", use_container_width=True, on_click=change_page, args=("🔵 Clustering",))
 
+    st.write("")
     st.write("---")
-    st.subheader("⚡ Status Server & Database")
 
-    if db is None:
-        st.markdown('<div class="status-badge status-disconnected">🔴 MongoDB Atlas: Mode Lokal (Belum Terhubung)</div>', unsafe_allow_html=True)
-        st.caption("Aplikasi berjalan menggunakan penyimpanan memori lokal. Untuk menyambungkan ke Cloud Atlas, isi `MONGODB_URI` di file `.streamlit/secrets.toml`.")
-    else:
-        st.markdown('<div class="status-badge status-connected">🟢 MongoDB Atlas terhubung aktif.</div>', unsafe_allow_html=True)
+    col_stat_title, col_stat_badge = st.columns([2, 1])
+    with col_stat_title:
+        st.markdown("### ⚡ Infrastruktur Cloud & Status Database")
+    with col_stat_badge:
+        if db is not None:
+            st.markdown("""
+                <div style="text-align: right;">
+                    <div class="pulse-online">
+                        <span class="pulse-dot"></span> ATLAS MONGODB // CONNECTED
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+                <div style="text-align: right;">
+                    <span style="background: rgba(239, 68, 68, 0.15); color: #EF4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;">
+                        🔴 LOCAL IN-MEMORY MODE
+                    </span>
+                </div>
+            """, unsafe_allow_html=True)
 
     # Tabel Ringkasan Modul & Dataset
     rows = []
@@ -413,19 +579,23 @@ def page_home():
             n_extra = db.dataset_tambahan.count_documents({"key": f"{task}:{n}"}) if db is not None else len([d for d in st.session_state.mock_dataset_tambahan if d.get("key") == f"{task}:{n}"])
             n_models = db.models.count_documents({"key": f"{task}:{n}"}) if db is not None else len([d for d in st.session_state.mock_models if d.get("key") == f"{task}:{n}"])
             rows.append({
-                "Modul": TASK_LABEL[task],
-                "Dataset": n,
-                "Deskripsi": DATASET_DESC.get(n, "-"),
-                "Data Tambahan": n_extra,
-                "Model Tersimpan": n_models,
+                "Arsitektur Modul": TASK_LABEL[task],
+                "Dataset Target": n,
+                "Deskripsi Karakteristik": DATASET_DESC.get(n, "-"),
+                "Sampel Eksternal": n_extra,
+                "Model Snapshot": n_models,
             })
     st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
     n_comments = db.komentar.count_documents({}) if db is not None else len(st.session_state.mock_komentar)
     n_total_models = db.models.count_documents({}) if db is not None else len(st.session_state.mock_models)
-    st.caption(f"💬 Total Komentar Publik: **{n_comments}** | 📦 Total Model Tersimpan: **{n_total_models}**")
+    
+    col_k1, col_k2, col_k3 = st.columns(3)
+    col_k1.caption(f"💬 **Total Ulasan Publik Tersimpan:** `{n_comments}`")
+    col_k2.caption(f"📦 **Model Snapshot Cloud:** `{n_total_models}`")
+    col_k3.caption("⚡ **Engine Inferensi:** `Groq LPU (Llama 3.3 70B)`")
 
-    st.markdown('<div class="footer">Dashboard Machine Learning Studio & Cloud Database</div>', unsafe_allow_html=True)
+    st.markdown('<div class="footer">NEXUS AI ML STUDIO &bull; ADVANCED PREDICTIVE INTELLIGENCE PLATFORM</div>', unsafe_allow_html=True)
 
 # ============================================================================
 # HALAMAN 2: REGRESI LINEAR
@@ -896,7 +1066,7 @@ def page_groq():
                 st.session_state.chat_history.append({"role": "assistant", "content": fallback_msg})
 
 # ============================================================================
-# 6. SIDEBAR NAVIGASI & ROUTER (SUPER BERSIH & ELEGAN)
+# 6. SIDEBAR NAVIGASI & ROUTER (HEDON / PRO DEVELOPER)
 # ============================================================================
 PAGES = {
     "🏠 Dashboard Beranda": page_home,
@@ -908,7 +1078,22 @@ PAGES = {
     "🤖 Asisten Groq AI": page_groq,
 }
 
-st.sidebar.markdown("### 🧭 Menu Navigasi")
+# Branding Header Eksklusif
+st.sidebar.markdown("""
+    <div style="padding: 8px 0 18px 0;">
+        <div style="font-size: 0.68rem; font-weight: 800; letter-spacing: 2.5px; color: #00F5FF; text-transform: uppercase;">
+            ⚡ NEXUS AI PLATFORM
+        </div>
+        <div style="font-size: 1.45rem; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; font-family: 'Space Grotesk', sans-serif; margin-top: 2px;">
+            QUANTUM <span style="background: linear-gradient(90deg, #00F5FF, #FF007A); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">ML</span>
+        </div>
+        <div style="font-size: 0.75rem; color: #64748b; font-weight: 500;">
+            Predictive Intelligence &bull; v2.5
+        </div>
+    </div>
+""", unsafe_allow_html=True)
+
+st.sidebar.markdown("###### 🧭 PILIH MODUL ANALISIS")
 choice = st.sidebar.radio(
     "Navigasi",
     list(PAGES.keys()),
@@ -917,24 +1102,32 @@ choice = st.sidebar.radio(
 )
 st.sidebar.divider()
 
-# Indikator Status Minimalis di Bawah Sidebar
+# Indikator Status Futuristik di Bawah Sidebar
 if db is None:
-    st.sidebar.error("🔴 MongoDB: Tidak Terhubung")
-    if st.sidebar.button("🔄 Coba Sambung Ulang"):
+    st.sidebar.markdown("""
+        <div style="background: rgba(239, 68, 68, 0.15); color: #EF4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 10px; font-size: 0.78rem; font-weight: bold; margin-bottom: 8px;">
+            🔴 ATLAS: LOCAL MEMORY
+        </div>
+    """, unsafe_allow_html=True)
+    if st.sidebar.button("🔄 Hubungkan Ulang"):
         init_db.clear()
         st.rerun()
 else:
-    st.sidebar.success("🟢 MongoDB: Terhubung")
+    st.sidebar.markdown("""
+        <div class="pulse-online" style="margin-bottom: 8px; width: 100%; justify-content: center;">
+            <span class="pulse-dot"></span> CLOUD ATLAS // ONLINE
+        </div>
+    """, unsafe_allow_html=True)
     n_k = db.komentar.count_documents({})
     n_m = db.models.count_documents({})
-    st.sidebar.caption(f"💬 {n_k} komentar")
-    st.sidebar.caption(f"📦 {n_m} model tersimpan")
+    st.sidebar.caption(f"💬 **{n_k}** ulasan publik")
+    st.sidebar.caption(f"📦 **{n_m}** model snapshot")
 
 groq_ready = bool(get_groq_api_key())
 if groq_ready:
-    st.sidebar.caption("⚡ Groq LPU: Aktif (Llama 3.3)")
+    st.sidebar.caption("⚡ **Groq LPU Engine:** `Active`")
 else:
-    st.sidebar.caption("⚡ Groq: Mode Offline")
+    st.sidebar.caption("⚡ **Groq LPU Engine:** `Standby`")
 
 # Eksekusi Halaman Terpilih
 PAGES[choice]()
