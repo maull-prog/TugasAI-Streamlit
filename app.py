@@ -1,8 +1,4 @@
-# ==============================================================================
-# APLIKASI MACHINE LEARNING DENGAN STREAMLIT & MONGODB ATLAS
-# TUGAS AKHIR SEMESTER (TAS) - KULIAH AI UKSW
-# Dosen Pengampu: Dr. Suryasatriya Trihandaru, M.Sc.nat
-# ==============================================================================
+
 
 import streamlit as st
 import pandas as pd
@@ -320,14 +316,13 @@ mengintegrasikan algoritma supervised/unsupervised dengan **MongoDB Atlas** dan 
 """)
 
 # Navigasi Tab Utama
-tab_regresi, tab_klasifikasi, tab_clustering, tab_retrain, tab_komentar, tab_groq, tab_info = st.tabs([
+tab_regresi, tab_klasifikasi, tab_clustering, tab_retrain, tab_komentar, tab_groq = st.tabs([
     "📈 Regresi Linear",
     "🎯 Klasifikasi",
     "🔮 Clustering",
     "🍃 MongoDB & Retrain",
     "💬 Komentar & AI Sentimen",
-    "🤖 Asisten Groq AI",
-    "📘 Panduan & Info TAS"
+    "🤖 Asisten Groq AI"
 ])
 
 # ==============================================================================
@@ -1013,49 +1008,3 @@ with tab_groq:
                 st.markdown(fallback_ans)
                 st.session_state.chat_history.append({"role": "assistant", "content": fallback_ans})
 
-# ==============================================================================
-# TAB 7: PANDUAN & INFO TAS UKSW
-# ==============================================================================
-with tab_info:
-    st.header("📘 Informasi Proyek & Pendaftaran TAS")
-    st.markdown("""
-    ### 🎓 Ujian Akhir Semester (TAS) - Kecerdasan Buatan
-    * **Dosen Pengampu**: Dr. Suryasatriya Trihandaru, M.Sc.nat
-    * **Institusi**: Magister Sains Data / FSM - Universitas Kristen Satya Wacana (UKSW)
-    * **Batas Waktu Pengumpulan**: 1 Desember 2026
-    """)
-
-    st.markdown("---")
-    st.subheader("📋 Checklist Kelengkapan TAS")
-    c1, c2 = st.columns(2)
-    with c1:
-        st.markdown("""
-        - [x] **Regresi Linear**: Implementasi model regresi, metrik MAE/MSE/RMSE/R², dan grafik Actual vs Predicted.
-        - [x] **Klasifikasi**: Model supervised classification, Confusion Matrix heatmap, dan Classification Report.
-        - [x] **Clustering**: K-Means & Agglomerative, evaluasi Silhouette score, serta visualisasi PCA 2D.
-        """)
-    with c2:
-        st.markdown("""
-        - [x] **Integrasi MongoDB & Retrain**: Form insert sampel, hapus dokumen, dan retrain gabungan data.
-        - [x] **Komentar Publik + Groq AI**: Form komentar publik dengan **Auto-Sentiment Analysis** dan **AI Auto-Reply** via Groq LPU, tersimpan di MongoDB.
-        - [x] **Pendaftaran URL**: Siap didaftarkan ke portal web UKSW.
-        """)
-
-    st.markdown("---")
-    st.subheader("🌐 Panduan Mendaftarkan URL Streamlit ke Web UKSW")
-    st.markdown("""
-    1. **Push Proyek ke GitHub**: Commit semua file dan push repositori Anda ke akun GitHub.
-    2. **Deploy di Streamlit Cloud**: Buka [share.streamlit.io](https://share.streamlit.io/) dan deploy repositori Anda.
-    3. **Set Secrets di Streamlit Cloud**: Di menu `App Settings -> Secrets`, masukkan:
-       ```toml
-       MONGODB_URI = "mongodb+srv://<username>:<password>@cluster0.xxxx.mongodb.net/?retryWrites=true&w=majority"
-       GROQ_API_KEY = "gsk_xxxxxxxxxxxx..."
-       ```
-    4. **Daftarkan URL**:
-       * Buka [Portal Pendaftaran UKSW](https://mdsfsmuksw.my.id/materi-belajar/streamlit)
-       * Klik **Minta Token** (gunakan email mahasiswa `@student.uksw.edu`).
-       * Masukkan token yang diterima, lalu daftarkan URL Streamlit publik Anda.
-    """)
-
-    st.markdown("---")
-    st.caption("Dibuat dengan ❤️ untuk Ujian Akhir Semester AI UKSW 2026.")
