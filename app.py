@@ -71,8 +71,8 @@ except ImportError:
 # 1. Konfigurasi Halaman & Tema Hedon / Pro Cyberpunk
 # ----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="NEXUS ML Studio // Quantum AI",
-    page_icon="⚡",
+    page_title="Dashboard Machine Learning",
+    page_icon="🧠🤖",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -509,17 +509,13 @@ def feature_inputs(base, feats, prefix, ncols=3):
     return vals
 
 # ============================================================================
-# ============================================================================
-# HALAMAN 1: DASHBOARD BERANDA (HEDON / PRO DEVELOPER)
+# HALAMAN 1: DASHBOARD BERANDA (DESAIN HEDON MODERN)
 # ============================================================================
 def page_home():
     st.markdown("""
-        <div class="dev-badge-top">⚡ NEXUS QUANTUM CORE v3.0 &bull; ENTERPRISE PREDICTIVE INTELLIGENCE</div>
-        <div class="hero-title-hedon">NEXUS ML STUDIO</div>
+        <div class="hero-title-hedon">🧠🤖 Dashboard Machine Learning</div>
         <div class="hero-subtitle-hedon">
-            Arsitektur terdistribusi komputasi AI & Machine Learning generasi mutakhir. 
-            Terintegrasi dengan <b>MongoDB Atlas Cloud Database</b>, automated retraining pipeline, 
-            dan akselerasi inferensi ultra-responsif <b>Groq LPU (Llama 3.3 70B)</b>.
+            Aplikasi interaktif pemodelan <b>Regresi Linear</b>, <b>Klasifikasi</b>, dan <b>Clustering</b> terintegrasi <i>real-time</i> dengan <b>MongoDB Atlas</b> dan akselerasi AI <b>Groq LPU</b>.
         </div>
     """, unsafe_allow_html=True)
 
@@ -531,23 +527,23 @@ def page_home():
                 <span class="card-badge badge-reg">SUPERVISED MODEL</span>
                 <div class="hedon-title">📈 Regresi Linear</div>
                 <div class="hedon-desc">
-                    Prediksi nilai kontinu berpresisi tinggi dengan evaluasi <b>R² Score, MAE, RMSE</b>, dan simulator interaktif pada dataset <i>Diabetes</i> & <i>California Housing</i>.
+                    Prediksi nilai kontinu dengan dataset <b>Diabetes</b> & <b>California Housing</b>.
                 </div>
             </div>
         ''', unsafe_allow_html=True)
-        st.button("🚀 Luncurkan Modul Regresi", key="btn_nav_reg", use_container_width=True, on_click=change_page, args=("📈 Regresi Linear",))
+        st.button("🚀 Modul Regresi", key="btn_nav_reg", use_container_width=True, on_click=change_page, args=("📈 Regresi Linear",))
 
     with c2:
         st.markdown('''
             <div class="hedon-card">
                 <span class="card-badge badge-clf">MULTI-ALGORITHM</span>
-                <div class="hedon-title">🧪 Klasifikasi Cerdas</div>
+                <div class="hedon-title">🧪 Klasifikasi Multi-Algoritma</div>
                 <div class="hedon-desc">
-                    Pemodelan kategorikal multi-kelas & biner (Random Forest, LogReg, KNN) dilengkapi <b>Confusion Matrix interaktif</b> dan simulator probabilitas kelas.
+                    Prediksi kategori dengan dataset <b>Iris</b>, <b>Wine</b>, & <b>Breast Cancer</b>.
                 </div>
             </div>
         ''', unsafe_allow_html=True)
-        st.button("🚀 Luncurkan Modul Klasifikasi", key="btn_nav_clf", use_container_width=True, on_click=change_page, args=("🧪 Klasifikasi",))
+        st.button("🚀 Modul Klasifikasi", key="btn_nav_clf", use_container_width=True, on_click=change_page, args=("🧪 Klasifikasi",))
 
     with c3:
         st.markdown('''
@@ -555,24 +551,24 @@ def page_home():
                 <span class="card-badge badge-clu">UNSUPERVISED AI</span>
                 <div class="hedon-title">🔵 Clustering K-Means</div>
                 <div class="hedon-desc">
-                    Pengelompokan pola data tak berlabel dengan <b>Proyeksi PCA 2D</b>, evaluasi klaster <b>Silhouette Score</b>, dan analisis kurva Elbow Method.
+                    Pengelompokan data tak berlabel dengan dataset <b>Iris</b>, <b>Wine</b>, & <b>Breast Cancer</b>.
                 </div>
             </div>
         ''', unsafe_allow_html=True)
-        st.button("🚀 Luncurkan Modul Clustering", key="btn_nav_clu", use_container_width=True, on_click=change_page, args=("🔵 Clustering",))
+        st.button("🚀 Modul Clustering", key="btn_nav_clu", use_container_width=True, on_click=change_page, args=("🔵 Clustering",))
 
     st.write("")
     st.write("---")
 
     col_stat_title, col_stat_badge = st.columns([2, 1])
     with col_stat_title:
-        st.markdown("### ⚡ Infrastruktur Cloud & Status Database")
+        st.markdown("### ⚡ Status Server & Database")
     with col_stat_badge:
         if db is not None:
             st.markdown("""
                 <div style="text-align: right;">
                     <div class="pulse-online">
-                        <span class="pulse-dot"></span> ATLAS MONGODB // CONNECTED
+                        <span class="pulse-dot"></span> MongoDB Atlas terhubung aktif.
                     </div>
                 </div>
             """, unsafe_allow_html=True)
@@ -580,7 +576,7 @@ def page_home():
             st.markdown("""
                 <div style="text-align: right;">
                     <span style="background: rgba(239, 68, 68, 0.15); color: #EF4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;">
-                        🔴 LOCAL IN-MEMORY MODE
+                        🔴 MongoDB Belum Terhubung (Mode Lokal)
                     </span>
                 </div>
             """, unsafe_allow_html=True)
@@ -592,23 +588,19 @@ def page_home():
             n_extra = db.dataset_tambahan.count_documents({"key": f"{task}:{n}"}) if db is not None else len([d for d in st.session_state.mock_dataset_tambahan if d.get("key") == f"{task}:{n}"])
             n_models = db.models.count_documents({"key": f"{task}:{n}"}) if db is not None else len([d for d in st.session_state.mock_models if d.get("key") == f"{task}:{n}"])
             rows.append({
-                "Arsitektur Modul": TASK_LABEL[task],
-                "Dataset Target": n,
-                "Deskripsi Karakteristik": DATASET_DESC.get(n, "-"),
-                "Sampel Eksternal": n_extra,
-                "Model Snapshot": n_models,
+                "Modul": TASK_LABEL[task],
+                "Dataset": n,
+                "Deskripsi": DATASET_DESC.get(n, "-"),
+                "Data Tambahan": n_extra,
+                "Model Tersimpan": n_models,
             })
     st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
     n_comments = db.komentar.count_documents({}) if db is not None else len(st.session_state.mock_komentar)
     n_total_models = db.models.count_documents({}) if db is not None else len(st.session_state.mock_models)
-    
-    col_k1, col_k2, col_k3 = st.columns(3)
-    col_k1.caption(f"💬 **Total Ulasan Publik Tersimpan:** `{n_comments}`")
-    col_k2.caption(f"📦 **Model Snapshot Cloud:** `{n_total_models}`")
-    col_k3.caption("⚡ **Engine Inferensi:** `Groq LPU (Llama 3.3 70B)`")
+    st.caption(f"💬 Total Komentar Publik: **{n_comments}** | 📦 Total Model Tersimpan: **{n_total_models}**")
 
-    st.markdown('<div class="footer">NEXUS AI ML STUDIO &bull; ADVANCED PREDICTIVE INTELLIGENCE PLATFORM</div>', unsafe_allow_html=True)
+    st.markdown('<div class="footer">Dashboard Machine Learning Studio &bull; Cloud Database Atlas</div>', unsafe_allow_html=True)
 
 # ============================================================================
 # HALAMAN 2: REGRESI LINEAR
@@ -1091,22 +1083,22 @@ PAGES = {
     "🤖 Asisten Groq AI": page_groq,
 }
 
-# Branding Header Eksklusif
+# Branding Header Sidebar
 st.sidebar.markdown("""
     <div style="padding: 8px 0 18px 0;">
-        <div style="font-size: 0.68rem; font-weight: 800; letter-spacing: 2.5px; color: #00F5FF; text-transform: uppercase;">
-            ⚡ NEXUS AI PLATFORM
+        <div style="font-size: 0.72rem; font-weight: 800; letter-spacing: 2px; color: #00F5FF; text-transform: uppercase;">
+            🧠🤖 MACHINE LEARNING
         </div>
         <div style="font-size: 1.45rem; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; font-family: 'Space Grotesk', sans-serif; margin-top: 2px;">
-            QUANTUM <span style="background: linear-gradient(90deg, #00F5FF, #FF007A); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">ML</span>
+            DASHBOARD <span style="background: linear-gradient(90deg, #00F5FF, #FF007A); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">ML</span>
         </div>
-        <div style="font-size: 0.75rem; color: #64748b; font-weight: 500;">
-            Predictive Intelligence &bull; v2.5
+        <div style="font-size: 0.78rem; color: #94a3b8; font-weight: 500;">
+            Aplikasi Interaktif &bull; Tugas Kuliah AI
         </div>
     </div>
 """, unsafe_allow_html=True)
 
-st.sidebar.markdown("###### 🧭 PILIH MODUL ANALISIS")
+st.sidebar.markdown("###### 🧭 Menu Navigasi")
 choice = st.sidebar.radio(
     "Navigasi",
     list(PAGES.keys()),
@@ -1115,11 +1107,11 @@ choice = st.sidebar.radio(
 )
 st.sidebar.divider()
 
-# Indikator Status Futuristik di Bawah Sidebar
+# Indikator Status Database di Bawah Sidebar
 if db is None:
     st.sidebar.markdown("""
         <div style="background: rgba(239, 68, 68, 0.15); color: #EF4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 10px; font-size: 0.78rem; font-weight: bold; margin-bottom: 8px;">
-            🔴 ATLAS: LOCAL MEMORY
+            🔴 MongoDB: Mode Lokal
         </div>
     """, unsafe_allow_html=True)
     if st.sidebar.button("🔄 Hubungkan Ulang"):
@@ -1128,19 +1120,19 @@ if db is None:
 else:
     st.sidebar.markdown("""
         <div class="pulse-online" style="margin-bottom: 8px; width: 100%; justify-content: center;">
-            <span class="pulse-dot"></span> CLOUD ATLAS // ONLINE
+            <span class="pulse-dot"></span> MongoDB Atlas: Online
         </div>
     """, unsafe_allow_html=True)
     n_k = db.komentar.count_documents({})
     n_m = db.models.count_documents({})
     st.sidebar.caption(f"💬 **{n_k}** ulasan publik")
-    st.sidebar.caption(f"📦 **{n_m}** model snapshot")
+    st.sidebar.caption(f"📦 **{n_m}** model tersimpan")
 
 groq_ready = bool(get_groq_api_key())
 if groq_ready:
-    st.sidebar.caption("⚡ **Groq LPU Engine:** `Active`")
+    st.sidebar.caption("⚡ **Groq LPU:** `Aktif`")
 else:
-    st.sidebar.caption("⚡ **Groq LPU Engine:** `Standby`")
+    st.sidebar.caption("⚡ **Groq LPU:** `Standby`")
 
 # Eksekusi Halaman Terpilih
 PAGES[choice]()
