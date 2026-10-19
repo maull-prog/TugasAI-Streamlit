@@ -1085,20 +1085,20 @@ PAGES = {
 
 # Branding Header Sidebar
 st.sidebar.markdown("""
-    <div style="padding: 8px 0 18px 0;">
-        <div style="font-size: 0.72rem; font-weight: 800; letter-spacing: 2px; color: #00F5FF; text-transform: uppercase;">
-            🧠🤖 MACHINE LEARNING
+    <div style="padding: 10px 0 16px 0; text-align: center;">
+        <div style="font-size: 1.8rem; margin-bottom: 2px;">
+            🧠🤖
         </div>
-        <div style="font-size: 1.45rem; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; font-family: 'Space Grotesk', sans-serif; margin-top: 2px;">
-            DASHBOARD <span style="background: linear-gradient(90deg, #00F5FF, #FF007A); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">ML</span>
+        <div style="font-size: 1.35rem; font-weight: 800; font-family: 'Space Grotesk', sans-serif; letter-spacing: 0.5px;">
+            <span style="background: linear-gradient(90deg, #00F5FF, #FF007A); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">MACHINE LEARNING</span>
         </div>
-        <div style="font-size: 0.8rem; color: #94a3b8; font-weight: 500; margin-top: 4px;">
+        <div style="font-size: 0.82rem; color: #94a3b8; font-weight: 500; margin-top: 6px;">
             By <span style="color: #ffffff; font-weight: 700;">Pradika Maula</span> &bull; Tugas Kuliah AI
         </div>
     </div>
 """, unsafe_allow_html=True)
 
-st.sidebar.markdown("###### 🧭 Menu Navigasi")
+st.sidebar.markdown('<div style="text-align: center; font-size: 0.78rem; font-weight: 700; color: #94a3b8; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px;">🧭 Menu Navigasi</div>', unsafe_allow_html=True)
 choice = st.sidebar.radio(
     "Navigasi",
     list(PAGES.keys()),
