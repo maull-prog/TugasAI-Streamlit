@@ -1,42 +1,59 @@
+"""
+Dashboard Machine Learning Interaktif
+Regresi Linear, Klasifikasi, Clustering, Retraining Real-Time dengan MongoDB Atlas & Akselerasi AI Groq LPU
+"""
 
-
-import streamlit as st
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-import plotly.express as px
-import plotly.graph_objects as go
-from datetime import datetime
+import os
+import pickle
+import json
+from datetime import datetime, timedelta, timezone
 import time
 import warnings
 warnings.filterwarnings('ignore')
 
-# Scikit-learn: Datasets
-from sklearn import datasets
-from sklearn.model_selection import train_test_split
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
+import numpy as np
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+import streamlit as st
 
-# Scikit-learn: Model Regresi
+# Scikit-learn
+from sklearn.datasets import (
+    load_diabetes,
+    fetch_california_housing,
+    load_iris,
+    load_wine,
+    load_breast_cancer,
+)
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+from sklearn.decomposition import PCA
+
+# Regresi
 from sklearn.linear_model import LinearRegression, Ridge, Lasso
-from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
-# Scikit-learn: Model Klasifikasi
+# Klasifikasi
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, classification_report
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    confusion_matrix,
+    classification_report,
+)
 
-# Scikit-learn: Clustering
-from sklearn.cluster import KMeans, AgglomerativeClustering, DBSCAN
+# Clustering
+from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score, davies_bouldin_score
 
-# MongoDB & BSON
+# MongoDB & Groq
 try:
     from pymongo import MongoClient
     from bson.objectid import ObjectId
@@ -44,973 +61,880 @@ try:
 except ImportError:
     HAS_PYMONGO = False
 
-# Groq Cloud AI
 try:
     from groq import Groq
     HAS_GROQ = True
 except ImportError:
     HAS_GROQ = False
-import json
 
-# ------------------------------------------------------------------------------
-# 1. KONFIGURASI HALAMAN & TEMA
-# ------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
+# 1. Konfigurasi Halaman & Tema
+# ----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="AI Studio UKSW - Streamlit & ML",
+    page_title="Dashboard Machine Learning",
     page_icon="🧠",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
-# Custom Styling CSS untuk tampilan UI Modern & Elegan
+# Custom CSS - Ultra Clean Dark Aesthetics (Sesuai Desain Modern)
 st.markdown("""
 <style>
-    /* Metric Card Styling */
-    div[data-testid="stMetricValue"] {
-        font-size: 1.8rem;
-        font-weight: 700;
-        color: #00d2ff;
+    .stApp { background-color: #0e1117; }
+    
+    .gradient-text {
+        background: linear-gradient(90deg, #4F46E5, #06B6D4);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 800;
+    }
+    .main-title-container {
+        font-size: 2.3rem;
+        font-weight: 800;
+        margin-bottom: 0.2rem;
     }
     .custom-card {
-        background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
-        border: 1px solid rgba(0, 210, 255, 0.2);
+        background-color: #1f2937;
         border-radius: 12px;
         padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-    }
-    .comment-card {
-        background: rgba(26, 31, 44, 0.7);
-        border-left: 4px solid #00d2ff;
-        border-radius: 8px;
-        padding: 14px 18px;
+        border: 1px solid #374151;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
         margin-bottom: 12px;
+        height: 100%;
     }
-    .badge-uksw {
-        background: linear-gradient(90deg, #0052D4, #4364F7, #6FB1FC);
-        color: white;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: bold;
+    .custom-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.4);
+        border-color: #06B6D4;
+    }
+    .card-title {
+        color: #f3f4f6;
+        font-size: 1.15rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+    .card-desc {
+        color: #9ca3af;
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #38bdf8;
+    }
+    [data-testid="stMetric"] {
+        background-color: #1e293b;
+        border: 1px solid #334155;
+        padding: 12px 16px;
+        border-radius: 10px;
+    }
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
         display: inline-block;
+        margin-bottom: 8px;
     }
-    .badge-status {
-        background: #10B981;
-        color: white;
-        padding: 3px 10px;
-        border-radius: 12px;
-        font-size: 0.75rem;
+    .status-connected {
+        background-color: rgba(16, 185, 129, 0.15);
+        color: #10B981;
+        border: 1px solid rgba(16, 185, 129, 0.3);
     }
-    .badge-groq {
-        background: linear-gradient(90deg, #F55036, #F97316);
-        color: white;
-        padding: 3px 10px;
-        border-radius: 12px;
-        font-size: 0.75rem;
-        font-weight: bold;
+    .status-disconnected {
+        background-color: rgba(239, 68, 68, 0.15);
+        color: #EF4444;
+        border: 1px solid rgba(239, 68, 68, 0.3);
     }
     .ai-reply-box {
-        background: rgba(245, 80, 54, 0.1);
-        border: 1px solid rgba(245, 80, 54, 0.3);
+        background: rgba(79, 70, 229, 0.12);
+        border-left: 3px solid #06B6D4;
         border-radius: 6px;
-        padding: 8px 12px;
+        padding: 10px 14px;
         margin-top: 8px;
-        font-size: 0.88rem;
+        font-size: 0.9rem;
+    }
+    .footer {
+        text-align: center;
+        color: #6b7280;
+        font-size: 0.85rem;
+        padding: 24px 0 10px 0;
+        border-top: 1px solid #1f2937;
+        margin-top: 40px;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# ------------------------------------------------------------------------------
-# 2. HELPER KONEKSI MONGODB ATLAS & GROQ AI DENGAN CACHE & SECRETS
-# ------------------------------------------------------------------------------
-def get_mongodb_uri():
-    """Mengambil MongoDB URI dari st.secrets atau session_state dengan aman."""
+# ----------------------------------------------------------------------------
+# 2. Dataset Definitions & Helpers
+# ----------------------------------------------------------------------------
+LOADERS = {
+    "Diabetes": load_diabetes,
+    "California Housing": fetch_california_housing,
+    "Iris": load_iris,
+    "Wine": load_wine,
+    "Breast Cancer": load_breast_cancer,
+}
+TASK_DATASETS = {
+    "regresi": ["Diabetes", "California Housing"],
+    "klasifikasi": ["Iris", "Wine", "Breast Cancer"],
+    "clustering": ["Iris", "Wine", "Breast Cancer"],
+}
+TASK_LABEL = {
+    "regresi": "Regresi Linear",
+    "klasifikasi": "Klasifikasi",
+    "clustering": "Clustering",
+}
+DATASET_DESC = {
+    "Diabetes": "Prediksi tingkat progres penyakit diabetes dalam 1 tahun berdasarkan metrik kesehatan.",
+    "California Housing": "Prediksi rata-rata harga rumah di California berdasarkan fitur geografis & demografis.",
+    "Iris": "Klasifikasi spesies bunga Iris berdasarkan ukuran panjang dan lebar kelopak.",
+    "Wine": "Klasifikasi asal usul wine berdasarkan analisis kandungan kimia.",
+    "Breast Cancer": "Klasifikasi tumor jinak/ganas berdasarkan fitur sel medis.",
+}
+
+def now_wib(dt=None):
+    if dt is None:
+        dt = datetime.now(timezone.utc)
+    return (dt + timedelta(hours=7)).strftime("%d %b %Y %H:%M WIB")
+
+# ----------------------------------------------------------------------------
+# 3. MongoDB & Groq Connection
+# ----------------------------------------------------------------------------
+def _get_secret(key_name, default=None):
     try:
-        if "MONGODB_URI" in st.secrets and st.secrets["MONGODB_URI"]:
-            return st.secrets["MONGODB_URI"]
+        if key_name in st.secrets and st.secrets[key_name]:
+            return st.secrets[key_name]
     except Exception:
         pass
-    if "custom_mongo_uri" in st.session_state and st.session_state.custom_mongo_uri:
-        return st.session_state.custom_mongo_uri
-    return None
-
-def get_groq_api_key():
-    """Mengambil Groq API Key dari st.secrets atau session_state dengan aman."""
-    try:
-        if "GROQ_API_KEY" in st.secrets and st.secrets["GROQ_API_KEY"]:
-            return st.secrets["GROQ_API_KEY"]
-    except Exception:
-        pass
-    if "custom_groq_key" in st.session_state and st.session_state.custom_groq_key:
-        return st.session_state.custom_groq_key
-    return None
-
-def analyze_comment_with_groq(comment_text: str, api_key: str):
-    """Menganalisis sentimen dan memberikan balasan AI otomatis menggunakan Groq Llama 3."""
-    if not api_key or not HAS_GROQ:
-        # Fallback offline sederhana jika Groq belum aktif
-        return {
-            "sentiment": "Positif 😊",
-            "reply": "Terima kasih banyak atas feedback dan partisipasi Anda dalam web Machine Learning ini!"
-        }
-    try:
-        client = Groq(api_key=api_key)
-        sys_prompt = (
-            "Anda adalah asisten AI resmi untuk website Machine Learning UKSW (Tugas Akhir Semester AI).\n"
-            "Tugas Anda: Menganalisis komentar pengunjung dan memberikan balasan ramah.\n"
-            "Keluaran WAJIB HANYA format JSON valid tanpa format markdown (tanpa ```json) dengan struktur:\n"
-            "{\n"
-            '  "sentiment": "Positif 😊" atau "Netral 😐" atau "Negatif 😡",\n'
-            '  "reply": "Balasan hangat, sopan, dan apresiatif dalam 1-2 kalimat bahasa Indonesia"\n'
-            "}"
-        )
-        response = client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": sys_prompt},
-                {"role": "user", "content": f'Komentar: "{comment_text}"'}
-            ],
-            model="llama-3.3-70b-versatile",
-            temperature=0.3,
-            max_tokens=200
-        )
-        raw_res = response.choices[0].message.content.strip()
-        if raw_res.startswith("```"):
-            raw_res = raw_res.replace("```json", "").replace("```", "").strip()
-        parsed = json.loads(raw_res)
-        return parsed
-    except Exception:
-        try:
-            client = Groq(api_key=api_key)
-            response = client.chat.completions.create(
-                messages=[{"role": "user", "content": f"Balas ramah singkat dalam 1 kalimat bahasa Indonesia untuk komentar ini: {comment_text}"}],
-                model="llama-3.1-8b-instant",
-                temperature=0.3,
-                max_tokens=80
-            )
-            return {
-                "sentiment": "Positif 😊",
-                "reply": response.choices[0].message.content.strip()
-            }
-        except Exception:
-            return {
-                "sentiment": "Positif 😊",
-                "reply": "Terima kasih atas tanggapan dan masukan berharga yang Anda berikan!"
-            }
+    return os.getenv(key_name, default)
 
 @st.cache_resource(show_spinner=False)
-def init_mongo_client(uri: str):
-    """Inisialisasi koneksi MongoClient dengan caching resource."""
-    if not uri or not HAS_PYMONGO:
-        return None
+def init_db():
+    if not HAS_PYMONGO:
+        return None, "Library pymongo belum terpasang."
+    uri = _get_secret("MONGODB_URI")
+    if not uri and "custom_mongo_uri" in st.session_state:
+        uri = st.session_state.custom_mongo_uri
+    if not uri:
+        return None, "Koneksi MongoDB belum diatur."
     try:
         client = MongoClient(uri, serverSelectionTimeoutMS=4000)
-        # Test ping server
-        client.admin.command('ping')
-        return client
+        client.admin.command("ping")
+        return client[_get_secret("MONGODB_DB", "tugas_ai")], None
     except Exception as e:
-        return None
+        return None, str(e)
 
-def get_database(client):
-    """Mengambil database test_db."""
-    if client is not None:
-        return client["test_db"]
-    return None
+db, db_error = init_db()
 
-# Inisialisasi Mock Storage lokal jika MongoDB belum terkoneksi
-if "mock_iris_db" not in st.session_state:
-    st.session_state.mock_iris_db = []
-if "mock_comments" not in st.session_state:
-    st.session_state.mock_comments = [
+# In-memory Mock Data jika MongoDB belum terhubung
+if "mock_dataset_tambahan" not in st.session_state:
+    st.session_state.mock_dataset_tambahan = []
+if "mock_komentar" not in st.session_state:
+    st.session_state.mock_komentar = [
         {
             "nama": "Dr. Suryasatriya Trihandaru, M.Sc.nat",
-            "peran": "Dosen Pembimbing",
-            "rating": 5,
-            "komentar": "Implementasi sistem end-to-end Streamlit, scikit-learn, MongoDB, dan Groq AI sangat lengkap dan josjis!",
+            "komentar": "Aplikasi interaktif pemodelan machine learning dan dashboard tersusun sangat rapi dan menarik!",
             "sentiment": "Positif 😊",
-            "ai_reply": "Terima kasih banyak atas bimbingan dan arahannya selama perkuliahan AI, Pak Surya!",
-            "timestamp": "2026-10-14 10:30:00"
-        },
-        {
-            "nama": "Tim Reviewer AI",
-            "peran": "Reviewer",
-            "rating": 5,
-            "komentar": "Fitur clustering dan integrasi inferensi Groq LPU berjalan sangat responsif dan cepat.",
-            "sentiment": "Positif 😊",
-            "ai_reply": "Senang mendengarnya! Kecepatan inferensi Groq LPU sangat membantu performa web real-time.",
-            "timestamp": "2026-10-15 08:45:00"
+            "ai_reply": "Terima kasih banyak atas apresiasi dan bimbingannya, Pak Surya!",
+            "created_at": datetime.now(timezone.utc) - timedelta(hours=2)
         }
     ]
+if "mock_models" not in st.session_state:
+    st.session_state.mock_models = []
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = [
-        {"role": "assistant", "content": "Halo! Saya adalah Asisten AI berbasis **Groq LPU (Llama 3)**. Ada yang bisa saya bantu seputar model Machine Learning, evaluasi metrik, atau dataset Anda?"}
+        {"role": "assistant", "content": "Halo! Saya adalah Asisten AI berbasis **Groq LPU (Llama 3.3)**. Tanyakan apa saja seputar model Regresi, Klasifikasi, Clustering, atau arsitektur sistem ini!"}
     ]
 
-# ------------------------------------------------------------------------------
-# 3. SIDEBAR: KONTROL, STATUS DATABASE & INFORMASI PROYEK
-# ------------------------------------------------------------------------------
-with st.sidebar:
-    st.markdown("### 🎓 UKSW AI Studio")
-    st.markdown('<span class="badge-uksw">TAS Machine Learning 2026</span>', unsafe_allow_html=True)
-    st.caption("Dr. Suryasatriya Trihandaru, M.Sc.nat")
-    st.markdown("---")
+# ----------------------------------------------------------------------------
+# 4. Helper Database & Groq Functions
+# ----------------------------------------------------------------------------
+def get_groq_api_key():
+    key = _get_secret("GROQ_API_KEY")
+    if not key and "custom_groq_key" in st.session_state:
+        key = st.session_state.custom_groq_key
+    return key
 
-    # Status Koneksi MongoDB
-    st.subheader("🍃 Status MongoDB Atlas")
-    current_uri = get_mongodb_uri()
-    mongo_client = init_mongo_client(current_uri) if current_uri else None
-
-    if mongo_client:
-        st.success("🟢 Terhubung ke MongoDB Atlas")
-        st.caption("Database: `test_db` | Collection: `iris_db`")
-    else:
-        st.warning("🟠 MongoDB Belum Terhubung")
-        st.caption("Memakai mode simulasi memori. Untuk menghubungkan ke Cloud, masukkan URI di bawah atau gunakan `.streamlit/secrets.toml`:")
-        custom_input = st.text_input(
-            "Alamat MONGODB_URI:",
-            type="password",
-            placeholder="mongodb+srv://user:pass@cluster...",
-            help="Masukkan string koneksi MongoDB Atlas Anda"
+def analyze_comment_ai(comment_text):
+    api_key = get_groq_api_key()
+    if not api_key or not HAS_GROQ:
+        return {"sentiment": "Positif 😊", "reply": "Terima kasih atas ulasan dan masukan Anda!"}
+    try:
+        client = Groq(api_key=api_key)
+        prompt = (
+            f'Analisis komentar berikut: "{comment_text}"\n'
+            'Berikan respon JSON murni tanpa markdown (tanpa ```json) dengan format:\n'
+            '{"sentiment": "Positif 😊" atau "Netral 😐" atau "Negatif 😡", "reply": "Balasan sopan dalam 1-2 kalimat bahasa Indonesia"}'
         )
-        if custom_input:
-            st.session_state.custom_mongo_uri = custom_input
-            st.rerun()
-
-    # Status Groq AI Cloud
-    st.markdown("---")
-    st.subheader("⚡ Status Groq AI")
-    current_groq_key = get_groq_api_key()
-    if current_groq_key:
-        st.success("⚡ Groq LPU Aktif (Llama 3.3)")
-        st.caption("Model: `llama-3.3-70b-versatile` | Ultra-Fast LPU Inference")
-    else:
-        st.info("⚡ Groq API Key (Aktifkan AI)")
-        st.caption("Dapatkan key gratis di [console.groq.com](https://console.groq.com):")
-        groq_input = st.text_input(
-            "GROQ_API_KEY:",
-            type="password",
-            placeholder="gsk_xxxxxxxxxxxx...",
-            help="Masukkan API key Groq Anda untuk analisis sentimen & chatbot AI"
+        res = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.3-70b-versatile",
+            temperature=0.3,
+            max_tokens=150
         )
-        if groq_input:
-            st.session_state.custom_groq_key = groq_input
-            st.rerun()
+        raw = res.choices[0].message.content.strip()
+        if raw.startswith("```"):
+            raw = raw.replace("```json", "").replace("```", "").strip()
+        return json.loads(raw)
+    except Exception:
+        return {"sentiment": "Positif 😊", "reply": "Terima kasih banyak atas komentar dan partisipasi Anda!"}
 
-    st.markdown("---")
-    st.subheader("👨‍💻 Identitas Kelompok")
-    st.text_input("Nama Mahasiswa / Kelompok:", value="Kelompok AI - UKSW", key="student_name")
-    st.text_input("NIM / Kelas:", value="682022xxx - Sains Data", key="student_nim")
+@st.cache_data
+def load_base(name):
+    d = LOADERS[name](as_frame=True)
+    feats = list(d.feature_names)
+    tn = getattr(d, "target_names", None)
+    tn = [str(x) for x in tn] if tn is not None else None
+    if name == "California Housing":
+        feats = feats[:6]
+    elif name == "Breast Cancer":
+        feats = feats[:8]
+    df = d.frame[feats + ["target"]].copy()
+    return df, feats, tn
 
-    st.markdown("---")
-    st.markdown("### 📌 Fitur Aplikasi")
-    st.markdown("""
-    - ✅ **Regresi Linear & Regresi Lanjutan**
-    - ✅ **Klasifikasi Multikelas & Metrik**
-    - ✅ **Clustering K-Means & PCA (Unsupervised)**
-    - ✅ **MongoDB CRUD & Retraining Model**
-    - ✅ **Komentar Publik (Auto-Sentiment & AI Reply)**
-    - ✅ **Asisten Chatbot Cerdas Groq LPU**
-    """)
+def get_extra(task, name, feats):
+    cols = feats + ["target"]
+    if db is not None:
+        try:
+            docs = list(db.dataset_tambahan.find({"key": f"{task}:{name}"}))
+            rows = [list(d["values"]) + [d.get("target")] for d in docs if len(d.get("values", [])) == len(feats)]
+            return pd.DataFrame(rows, columns=cols).astype(float)
+        except Exception:
+            pass
+    # Fallback mock
+    docs = [d for d in st.session_state.mock_dataset_tambahan if d.get("key") == f"{task}:{name}"]
+    rows = [list(d["values"]) + [d.get("target")] for d in docs if len(d.get("values", [])) == len(feats)]
+    return pd.DataFrame(rows, columns=cols).astype(float) if rows else pd.DataFrame(columns=cols)
 
-# ------------------------------------------------------------------------------
-# 4. HEADER UTAMA
-# ------------------------------------------------------------------------------
-st.title("🤖 Web Machine Learning Studio & Cloud Database")
-st.markdown("""
-Aplikasi komprehensif implementasi *End-to-End Pipeline Machine Learning* berbasis **Streamlit**, 
-mengintegrasikan algoritma supervised/unsupervised dengan **MongoDB Atlas** dan akselerasi AI **Groq LPU**.
-""")
+def get_training_df(task, name, use_extra=True):
+    base, feats, tn = load_base(name)
+    extra = get_extra(task, name, feats) if use_extra else pd.DataFrame(columns=feats + ["target"])
+    if task != "clustering":
+        extra = extra.dropna(subset=["target"])
+    df = pd.concat([base, extra], ignore_index=True) if len(extra) else base.copy()
+    if task == "klasifikasi":
+        df["target"] = df["target"].astype(int)
+    return df, len(extra), feats, tn
 
-# Navigasi Tab Utama
-tab_regresi, tab_klasifikasi, tab_clustering, tab_retrain, tab_komentar, tab_groq = st.tabs([
-    "📈 Regresi Linear",
-    "🎯 Klasifikasi",
-    "🔮 Clustering",
-    "🍃 MongoDB & Retrain",
-    "💬 Komentar & AI Sentimen",
-    "🤖 Asisten Groq AI"
-])
+def save_model_record(task, dataset_name, model_obj, model_name, metrics):
+    doc = {
+        "key": f"{task}:{dataset_name}",
+        "task": task,
+        "dataset": dataset_name,
+        "model_name": model_name,
+        "metrics": metrics,
+        "created_at": datetime.now(timezone.utc),
+    }
+    if db is not None:
+        try:
+            db.models.insert_one(doc)
+            return True
+        except Exception:
+            pass
+    st.session_state.mock_models.append(doc)
+    return True
 
-# ==============================================================================
-# TAB 1: REGRESI
-# ==============================================================================
-with tab_regresi:
-    st.header("📈 Model Regresi (Linear & Nonlinear)")
-    st.caption("Prediksi nilai kontinu dengan evaluasi metrik MAE, MSE, RMSE, dan R².")
+# ----------------------------------------------------------------------------
+# 5. Navigasi Router
+# ----------------------------------------------------------------------------
+if "nav_radio" not in st.session_state:
+    st.session_state["nav_radio"] = "🏠 Dashboard Beranda"
 
-    col_r1, col_r2 = st.columns([1, 2.5])
+def change_page(page_name):
+    st.session_state["nav_radio"] = page_name
 
-    with col_r1:
-        st.markdown("#### ⚙️ Konfigurasi Regresi")
-        reg_dataset_choice = st.selectbox(
-            "Pilih Dataset Regresi:",
-            ["Diabetes Dataset (Scikit-Learn)", "Synthetic Housing Price (UCI Benchmark)"],
-            key="reg_dataset"
-        )
-        
-        reg_model_choice = st.selectbox(
-            "Pilih Model Regresi:",
-            ["Linear Regression", "Ridge Regression", "Lasso Regression", "Decision Tree Regressor", "Random Forest Regressor"],
-            key="reg_model"
-        )
-
-        test_size_reg = st.slider("Ukuran Test Split:", min_value=0.1, max_value=0.5, value=0.2, step=0.05, key="test_reg")
-        random_state_reg = st.number_input("Random State:", value=42, step=1, key="rs_reg")
-
-        # Parameter khusus
-        alpha_val = 1.0
-        if reg_model_choice in ["Ridge Regression", "Lasso Regression"]:
-            alpha_val = st.slider("Alpha (Regularisasi):", 0.01, 10.0, 1.0, 0.1)
-
-        btn_train_reg = st.button("🚀 Latih Model Regresi", key="btn_reg")
-
-    with col_r2:
-        # Load Dataset Regresi
-        if "Diabetes" in reg_dataset_choice:
-            data_reg = datasets.load_diabetes(as_frame=True)
-            X_reg = data_reg.data
-            y_reg = data_reg.target
-            feature_names_reg = data_reg.feature_names
-        else:
-            # Synthetic Housing Benchmark
-            np.random.seed(int(random_state_reg))
-            X_synth, y_synth = datasets.make_regression(n_samples=350, n_features=6, noise=15.0, random_state=int(random_state_reg))
-            feature_names_reg = [f"Fitur_{i+1}" for i in range(6)]
-            X_reg = pd.DataFrame(X_synth, columns=feature_names_reg)
-            y_reg = pd.Series(y_synth, name="Target_Harga")
-
-        # Split Data
-        X_train_r, X_test_r, y_train_r, y_test_r = train_test_split(
-            X_reg, y_reg, test_size=test_size_reg, random_state=int(random_state_reg)
-        )
-
-        # Inisialisasi Model
-        if reg_model_choice == "Linear Regression":
-            model_reg = LinearRegression()
-        elif reg_model_choice == "Ridge Regression":
-            model_reg = Ridge(alpha=alpha_val)
-        elif reg_model_choice == "Lasso Regression":
-            model_reg = Lasso(alpha=alpha_val)
-        elif reg_model_choice == "Decision Tree Regressor":
-            model_reg = DecisionTreeRegressor(random_state=int(random_state_reg))
-        else:
-            model_reg = RandomForestRegressor(n_estimators=100, random_state=int(random_state_reg))
-
-        # Training
-        start_time_r = time.time()
-        model_reg.fit(X_train_r, y_train_r)
-        durasi_reg = time.time() - start_time_r
-
-        # Prediksi
-        y_pred_r = model_reg.predict(X_test_r)
-
-        # Hitung Metrik
-        mae_r = mean_absolute_error(y_test_r, y_pred_r)
-        mse_r = mean_squared_error(y_test_r, y_pred_r)
-        rmse_r = np.sqrt(mse_r)
-        r2_r = r2_score(y_test_r, y_pred_r)
-
-        st.success(f"✅ Model **{reg_model_choice}** berhasil dilatih dalam **{durasi_reg:.4f} detik**!")
-
-        # Metric Cards
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("MAE", f"{mae_r:.3f}")
-        m2.metric("MSE", f"{mse_r:.3f}")
-        m3.metric("RMSE", f"{rmse_r:.3f}")
-        m4.metric("R² Score", f"{r2_r:.3f}")
-
-        # Visualisasi Actual vs Predicted
-        sub_tab1, sub_tab2 = st.tabs(["📊 Actual vs Predicted", "📋 Data Hasil Prediksi"])
-
-        with sub_tab1:
-            fig_reg = go.Figure()
-            # Scatter titik data
-            fig_reg.add_trace(go.Scatter(
-                x=y_test_r,
-                y=y_pred_r,
-                mode='markers',
-                name='Prediksi Sampel',
-                marker=dict(color='#00d2ff', size=8, opacity=0.8, line=dict(width=1, color='white'))
-            ))
-            # Garis identitas sempurna (y = x)
-            min_val = min(y_test_r.min(), y_pred_r.min())
-            max_val = max(y_test_r.max(), y_pred_r.max())
-            fig_reg.add_trace(go.Scatter(
-                x=[min_val, max_val],
-                y=[min_val, max_val],
-                mode='lines',
-                name='Prediksi Sempurna (y = x)',
-                line=dict(color='#ff4b4b', dash='dash', width=2)
-            ))
-            fig_reg.update_layout(
-                title=f"Grafik Actual vs Predicted: {reg_model_choice}",
-                xaxis_title="Nilai Sebenarnya (Actual)",
-                yaxis_title="Nilai Prediksi (Predicted)",
-                template="plotly_dark",
-                height=450
+def feature_inputs(base, feats, prefix, ncols=3):
+    vals = []
+    cols = st.columns(ncols)
+    for i, f in enumerate(feats):
+        lo, hi = float(base[f].min()), float(base[f].max())
+        pad = (hi - lo) * 0.5
+        with cols[i % ncols]:
+            v = st.number_input(
+                f, value=float(base[f].median()),
+                min_value=lo - pad, max_value=hi + pad,
+                step=(hi - lo) / 100 or 0.01, format="%.4f",
+                key=f"{prefix}_{f}",
             )
-            st.plotly_chart(fig_reg, use_container_width=True)
+        vals.append(v)
+    return vals
 
-        with sub_tab2:
-            df_res_reg = pd.DataFrame({
-                "Nilai Aktual": y_test_r.values,
-                "Nilai Prediksi": y_pred_r,
-                "Selisih (Error)": np.abs(y_test_r.values - y_pred_r)
+# ============================================================================
+# HALAMAN 1: DASHBOARD BERANDA
+# ============================================================================
+def page_home():
+    st.markdown('<h1 class="main-title-container">🧠🤖 <span class="gradient-text">Dashboard Machine Learning</span></h1>', unsafe_allow_html=True)
+    st.markdown("Aplikasi interaktif pemodelan **Regresi Linear**, **Klasifikasi**, dan **Clustering** terintegrasi *real-time* dengan **MongoDB Atlas** dan akselerasi AI **Groq LPU**.")
+    st.write("")
+
+    # Grid 3 Kartu Modul Utama
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown('''
+            <div class="custom-card">
+                <div class="card-title">📈 Regresi Linear</div>
+                <div class="card-desc">Prediksi nilai kontinu dengan dataset <b>Diabetes</b> & <b>California Housing</b>.</div>
+            </div>
+        ''', unsafe_allow_html=True)
+        st.button("🚀 Modul Regresi", key="btn_nav_reg", use_container_width=True, on_click=change_page, args=("📈 Regresi Linear",))
+    with c2:
+        st.markdown('''
+            <div class="custom-card">
+                <div class="card-title">🧪 Klasifikasi Multi-Algoritma</div>
+                <div class="card-desc">Prediksi kategori dengan dataset <b>Iris</b>, <b>Wine</b>, & <b>Breast Cancer</b>.</div>
+            </div>
+        ''', unsafe_allow_html=True)
+        st.button("🚀 Modul Klasifikasi", key="btn_nav_clf", use_container_width=True, on_click=change_page, args=("🧪 Klasifikasi",))
+    with c3:
+        st.markdown('''
+            <div class="custom-card">
+                <div class="card-title">🔵 Clustering K-Means</div>
+                <div class="card-desc">Pengelompokan data tak berlabel dengan dataset <b>Iris</b>, <b>Wine</b>, & <b>Breast Cancer</b>.</div>
+            </div>
+        ''', unsafe_allow_html=True)
+        st.button("🚀 Modul Clustering", key="btn_nav_clu", use_container_width=True, on_click=change_page, args=("🔵 Clustering",))
+
+    st.write("---")
+    st.subheader("⚡ Status Server & Database")
+
+    if db is None:
+        st.markdown('<div class="status-badge status-disconnected">🔴 MongoDB Atlas: Mode Lokal (Belum Terhubung)</div>', unsafe_allow_html=True)
+        st.caption("Aplikasi berjalan menggunakan penyimpanan memori lokal. Untuk menyambungkan ke Cloud Atlas, isi `MONGODB_URI` di file `.streamlit/secrets.toml`.")
+    else:
+        st.markdown('<div class="status-badge status-connected">🟢 MongoDB Atlas terhubung aktif.</div>', unsafe_allow_html=True)
+
+    # Tabel Ringkasan Modul & Dataset
+    rows = []
+    for task, names in TASK_DATASETS.items():
+        for n in names:
+            n_extra = db.dataset_tambahan.count_documents({"key": f"{task}:{n}"}) if db is not None else len([d for d in st.session_state.mock_dataset_tambahan if d.get("key") == f"{task}:{n}"])
+            n_models = db.models.count_documents({"key": f"{task}:{n}"}) if db is not None else len([d for d in st.session_state.mock_models if d.get("key") == f"{task}:{n}"])
+            rows.append({
+                "Modul": TASK_LABEL[task],
+                "Dataset": n,
+                "Deskripsi": DATASET_DESC.get(n, "-"),
+                "Data Tambahan": n_extra,
+                "Model Tersimpan": n_models,
             })
-            st.dataframe(df_res_reg.head(20), use_container_width=True)
+    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
-# ==============================================================================
-# TAB 2: KLASIFIKASI
-# ==============================================================================
-with tab_klasifikasi:
-    st.header("🎯 Model Klasifikasi (Supervised Learning)")
-    st.caption("Pemodelan multikelas dan biner dengan Confusion Matrix dan Classification Report.")
+    n_comments = db.komentar.count_documents({}) if db is not None else len(st.session_state.mock_komentar)
+    n_total_models = db.models.count_documents({}) if db is not None else len(st.session_state.mock_models)
+    st.caption(f"💬 Total Komentar Publik: **{n_comments}** | 📦 Total Model Tersimpan: **{n_total_models}**")
 
-    col_k1, col_k2 = st.columns([1, 2.5])
+    st.markdown('<div class="footer">Dashboard Machine Learning Studio & Cloud Database</div>', unsafe_allow_html=True)
 
-    with col_k1:
-        st.markdown("#### ⚙️ Konfigurasi Klasifikasi")
-        clf_dataset_choice = st.selectbox(
-            "Pilih Dataset Klasifikasi:",
-            ["Iris Flowers (3 Kelas)", "Wine Recognition (3 Kelas)", "Breast Cancer Wisconsin (Biner)"],
-            key="clf_dataset"
+# ============================================================================
+# HALAMAN 2: REGRESI LINEAR
+# ============================================================================
+def page_regresi():
+    st.markdown('<h1 class="main-title-container">📈 <span class="gradient-text">Regresi Linear & Lanjutan</span></h1>', unsafe_allow_html=True)
+    st.info("💡 **Regresi** memprediksi nilai target berupa **angka kontinu** berdasarkan hubungan antara fitur input dan target.")
+
+    c1, c2 = st.columns([1, 2])
+    name = c1.selectbox("Pilih Dataset Regresi", TASK_DATASETS["regresi"], key="reg_ds")
+    use_extra = c2.checkbox("Sertakan data tambahan dari MongoDB saat training", value=True, key="reg_extra")
+    
+    st.caption(f"ℹ️ **Deskripsi Dataset:** {DATASET_DESC.get(name, '')}")
+    df, n_extra, feats, _ = get_training_df("regresi", name, use_extra)
+    st.caption(f"📊 Total Data Latih: **{len(df)}** baris (Data Tambahan: **{n_extra}**)")
+
+    c_m1, c_m2 = st.columns(2)
+    model_name = c_m1.selectbox("Pilih Model Regresi", ["Linear Regression", "Ridge Regression", "Lasso Regression", "Random Forest Regressor"])
+    test_size = c_m2.slider("Proporsi Data Uji (Test Size)", 0.1, 0.5, 0.2, 0.05, key="reg_ts")
+
+    # Training
+    X, y = df.drop(columns="target"), df["target"]
+    Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=test_size, random_state=42)
+
+    if model_name == "Linear Regression":
+        m = LinearRegression()
+    elif model_name == "Ridge Regression":
+        m = Ridge(alpha=1.0)
+    elif model_name == "Lasso Regression":
+        m = Lasso(alpha=1.0)
+    else:
+        m = RandomForestRegressor(n_estimators=100, random_state=42)
+
+    with st.spinner("Melatih model regresi..."):
+        m.fit(Xtr, ytr)
+        pred = m.predict(Xte)
+
+    r2 = r2_score(yte, pred)
+    mae = mean_absolute_error(yte, pred)
+    rmse = mean_squared_error(yte, pred) ** 0.5
+
+    # Metrik Cards
+    mc1, mc2, mc3 = st.columns(3)
+    mc1.metric("R² Score", f"{r2:.4f}")
+    mc2.metric("MAE", f"{mae:.4f}")
+    mc3.metric("RMSE", f"{rmse:.4f}")
+
+    t1, t2, t3 = st.tabs(["📊 Dataset Overview", "📈 Grafik Actual vs Predicted", "🔮 Simulator Prediksi"])
+    with t1:
+        st.dataframe(df.head(25), use_container_width=True)
+        st.write("**Statistik Deskriptif:**")
+        st.dataframe(df.describe().T, use_container_width=True)
+
+    with t2:
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=yte.values, y=pred, mode="markers",
+            marker=dict(size=8, color="#38bdf8", opacity=0.7),
+            name="Data Prediksi",
+            hovertemplate="Aktual: %{x:.2f}<br>Prediksi: %{y:.2f}<extra></extra>",
+        ))
+        min_v, max_v = min(yte.min(), pred.min()), max(yte.max(), pred.max())
+        fig.add_trace(go.Scatter(
+            x=[min_v, max_v], y=[min_v, max_v], mode="lines",
+            line=dict(color="#f43f5e", dash="dash", width=2),
+            name="Garis Ideal (y = x)",
+        ))
+        fig.update_layout(title="Aktual vs Prediksi", xaxis_title="Nilai Aktual", yaxis_title="Nilai Prediksi",
+                          template="plotly_dark", height=430)
+        st.plotly_chart(fig, use_container_width=True)
+
+    with t3:
+        st.markdown(f"##### Masukkan Fitur untuk Simulasi Prediksi ({name}):")
+        base = load_base(name)[0]
+        vals = feature_inputs(base, feats, "reg_sim")
+        if st.button("🚀 Prediksi Nilai Kontinu", type="primary", key="btn_sim_reg"):
+            pred_single = float(m.predict(pd.DataFrame([vals], columns=feats))[0])
+            st.success(f"🎯 **Hasil Estimasi Prediksi:** `{pred_single:.4f}`")
+
+# ============================================================================
+# HALAMAN 3: KLASIFIKASI
+# ============================================================================
+def page_klasifikasi():
+    st.markdown('<h1 class="main-title-container">🧪 <span class="gradient-text">Klasifikasi Multi-Algoritma</span></h1>', unsafe_allow_html=True)
+    st.info("💡 **Klasifikasi** memprediksi label kategori target (misal: spesies bunga, diagnosa) berdasarkan fitur data.")
+
+    c1, c2 = st.columns([1, 2])
+    name = c1.selectbox("Pilih Dataset Klasifikasi", TASK_DATASETS["klasifikasi"], key="clf_ds")
+    use_extra = c2.checkbox("Sertakan data tambahan dari MongoDB saat training", value=True, key="clf_extra")
+    
+    st.caption(f"ℹ️ **Deskripsi Dataset:** {DATASET_DESC.get(name, '')}")
+    df, n_extra, feats, tn = get_training_df("klasifikasi", name, use_extra)
+    st.caption(f"📊 Total Data Latih: **{len(df)}** baris (Data Tambahan: **{n_extra}**)")
+
+    c_m1, c_m2 = st.columns(2)
+    model_name = c_m1.selectbox("Pilih Algoritma", ["Random Forest", "Logistic Regression", "KNN", "Decision Tree"])
+    test_size = c_m2.slider("Proporsi Data Uji", 0.1, 0.5, 0.2, 0.05, key="clf_ts")
+
+    X, y = df.drop(columns="target"), df["target"]
+    Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=test_size, random_state=42, stratify=y)
+
+    if model_name == "Logistic Regression":
+        clf = make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000))
+    elif model_name == "KNN":
+        clf = make_pipeline(StandardScaler(), KNeighborsClassifier(n_neighbors=5))
+    elif model_name == "Decision Tree":
+        clf = DecisionTreeClassifier(random_state=42)
+    else:
+        clf = RandomForestClassifier(n_estimators=100, random_state=42)
+
+    with st.spinner("Melatih model klasifikasi..."):
+        clf.fit(Xtr, ytr)
+        pred = clf.predict(Xte)
+
+    acc = accuracy_score(yte, pred)
+    prec = precision_score(yte, pred, average="macro", zero_division=0)
+    rec = recall_score(yte, pred, average="macro", zero_division=0)
+    f1 = f1_score(yte, pred, average="macro", zero_division=0)
+
+    # Metrik Cards
+    mc1, mc2, mc3, mc4 = st.columns(4)
+    mc1.metric("Akurasi", f"{acc * 100:.2f}%")
+    mc2.metric("Precision", f"{prec:.4f}")
+    mc3.metric("Recall", f"{rec:.4f}")
+    mc4.metric("F1 Score", f"{f1:.4f}")
+
+    t1, t2, t3 = st.tabs(["📊 Distribusi Data", "🎯 Confusion Matrix", "🔮 Simulator Prediksi"])
+    with t1:
+        show = df.copy()
+        show["Kelas"] = show["target"].map(lambda i: tn[int(i)] if tn else str(int(i)))
+        st.dataframe(show.head(25), use_container_width=True)
+        vc = show["Kelas"].value_counts().reset_index()
+        vc.columns = ["Kelas", "Jumlah"]
+        fig = px.bar(vc, x="Kelas", y="Jumlah", color="Kelas", title=f"Distribusi Kelas ({name})", template="plotly_dark")
+        st.plotly_chart(fig, use_container_width=True)
+
+    with t2:
+        classes = sorted(y.unique())
+        labels_display = [tn[c] if tn else str(c) for c in classes]
+        cm = confusion_matrix(yte, pred, labels=classes)
+        fig_cm = px.imshow(
+            cm, text_auto=True,
+            labels=dict(x="Prediksi", y="Aktual", color="Jumlah"),
+            x=labels_display, y=labels_display,
+            color_continuous_scale="Blues", template="plotly_dark", height=420
         )
+        st.plotly_chart(fig_cm, use_container_width=True)
 
-        clf_model_choice = st.selectbox(
-            "Pilih Algoritma Klasifikasi:",
-            ["Logistic Regression", "K-Nearest Neighbors (KNN)", "Decision Tree", "Random Forest", "Support Vector Machine (SVM)"],
-            key="clf_model"
+    with t3:
+        st.markdown(f"##### Masukkan Fitur untuk Simulasi Klasifikasi ({name}):")
+        base = load_base(name)[0]
+        vals = feature_inputs(base, feats, "clf_sim")
+        if st.button("🚀 Prediksi Kelas Target", type="primary", key="btn_sim_clf"):
+            pred_c = int(clf.predict(pd.DataFrame([vals], columns=feats))[0])
+            lbl_res = tn[pred_c] if tn else str(pred_c)
+            st.balloons()
+            st.success(f"🎯 **Hasil Prediksi Kelas:** `{lbl_res}`")
+
+# ============================================================================
+# HALAMAN 4: CLUSTERING (K-MEANS)
+# ============================================================================
+def page_clustering():
+    st.markdown('<h1 class="main-title-container">🔵 <span class="gradient-text">Clustering K-Means</span></h1>', unsafe_allow_html=True)
+    st.info("💡 **Clustering** mengelompokkan data tanpa label awal. Objek yang berada dalam satu klaster memiliki kemiripan pola karakteristik yang tinggi.")
+
+    c1, c2 = st.columns([1, 2])
+    name = c1.selectbox("Pilih Dataset Clustering", TASK_DATASETS["clustering"], key="clu_ds")
+    use_extra = c2.checkbox("Sertakan data tambahan dari MongoDB", value=True, key="clu_extra")
+    
+    st.caption(f"ℹ️ **Deskripsi Dataset:** {DATASET_DESC.get(name, '')}")
+    df, n_extra, feats, _ = get_training_df("clustering", name, use_extra)
+    k = st.slider("Jumlah Cluster (k)", 2, 8, 3, key="clu_k")
+
+    X = df.drop(columns="target", errors="ignore")
+    sc = StandardScaler()
+    Xs = sc.fit_transform(X)
+
+    with st.spinner("Menjalankan K-Means Clustering..."):
+        km = KMeans(n_clusters=k, n_init=10, random_state=42).fit(Xs)
+        labels = km.labels_
+        sil = silhouette_score(Xs, labels)
+        db_idx = davies_bouldin_score(Xs, labels)
+        pca_res = PCA(n_components=2, random_state=42).fit_transform(Xs)
+
+    mc1, mc2, mc3 = st.columns(3)
+    mc1.metric("Silhouette Score", f"{sil:.4f}", help="Mendekati 1.0 berarti pemisahan klaster sangat baik")
+    mc2.metric("Davies-Bouldin Index", f"{db_idx:.4f}", help="Semakin kecil nilainya semakin baik")
+    mc3.metric("Inertia", f"{km.inertia_:,.1f}")
+
+    t1, t2, t3 = st.tabs(["🎨 Proyeksi Klaster (PCA 2D)", "📊 Karakteristik Klaster", "🔮 Prediksi Klaster Baru"])
+    with t1:
+        pca_df = pd.DataFrame(pca_res, columns=["PC1", "PC2"])
+        pca_df["Cluster"] = [f"Cluster {l}" for l in labels]
+        fig_pca = px.scatter(
+            pca_df, x="PC1", y="PC2", color="Cluster",
+            title=f"Proyeksi PCA 2D — K-Means (k={k}, {name})",
+            template="plotly_dark", height=440
         )
+        st.plotly_chart(fig_pca, use_container_width=True)
 
-        test_size_clf = st.slider("Ukuran Test Split:", 0.1, 0.5, 0.25, 0.05, key="test_clf")
-        random_state_clf = st.number_input("Random State:", value=42, step=1, key="rs_clf")
+    with t2:
+        df_clust = X.copy()
+        df_clust["Cluster"] = labels
+        c_a, c_b = st.columns(2)
+        vc = df_clust["Cluster"].value_counts().sort_index().reset_index()
+        vc.columns = ["Cluster", "Jumlah Data"]
+        fig_b = px.bar(vc, x="Cluster", y="Jumlah Data", color="Cluster", title="Jumlah Sampel per Cluster", template="plotly_dark")
+        c_a.plotly_chart(fig_b, use_container_width=True)
+        c_b.write("**Nilai Rata-rata Fitur per Cluster:**")
+        c_b.dataframe(df_clust.groupby("Cluster").mean().style.format("{:.3f}"), use_container_width=True)
 
-        # Hyperparameter adaptif
-        k_val = 5
-        if clf_model_choice == "K-Nearest Neighbors (KNN)":
-            k_val = st.slider("Nilai K (Neighbors):", 1, 15, 5)
+    with t3:
+        st.markdown(f"##### Masukkan Fitur untuk Menentukan Cluster ({name}):")
+        base = load_base(name)[0]
+        vals = feature_inputs(base, feats, "clu_sim")
+        if st.button("🚀 Tentukan Cluster", type="primary", key="btn_sim_clu"):
+            X_new = sc.transform(pd.DataFrame([vals], columns=feats))
+            cid = int(km.predict(X_new)[0])
+            st.success(f"🎯 Data ini masuk ke dalam: **Cluster {cid}**")
 
-        btn_train_clf = st.button("🚀 Latih Model Klasifikasi", key="btn_clf")
+# ============================================================================
+# HALAMAN 5: UPDATE DATA & RETRAINING (MONGODB ATLAS)
+# ============================================================================
+def page_retrain():
+    st.markdown('<h1 class="main-title-container">🔁 <span class="gradient-text">Management Data & Retraining</span></h1>', unsafe_allow_html=True)
+    st.info("Tambahkan data baru ke MongoDB Atlas, kelola sampel, dan jalankan **Retraining** untuk memperbarui model secara *real-time*.")
 
-    with col_k2:
-        # Load Dataset
-        if "Iris" in clf_dataset_choice:
-            data_clf = datasets.load_iris(as_frame=True)
-        elif "Wine" in clf_dataset_choice:
-            data_clf = datasets.load_wine(as_frame=True)
-        else:
-            data_clf = datasets.load_breast_cancer(as_frame=True)
+    c1, c2 = st.columns(2)
+    task = c1.selectbox("Modul Pemodelan", list(TASK_LABEL), format_func=TASK_LABEL.get, key="rt_task")
+    name = c2.selectbox("Dataset Tujuan", TASK_DATASETS[task], key="rt_ds")
 
-        X_clf = data_clf.data
-        y_clf = data_clf.target
-        target_names = [str(name) for name in data_clf.target_names]
+    base, feats, tn = load_base(name)
+    key = f"{task}:{name}"
+    
+    n_extra = db.dataset_tambahan.count_documents({"key": key}) if db is not None else len([d for d in st.session_state.mock_dataset_tambahan if d.get("key") == key])
+    st.caption(f"📁 Data Asli Sklearn: **{len(base)}** baris | 📥 Data Tambahan Tersimpan: **{n_extra}** baris")
 
-        # Normalisasi untuk KNN & SVM
-        scaler = StandardScaler()
-        X_scaled_clf = scaler.fit_transform(X_clf)
+    t1, t2, t3 = st.tabs(["➕ Input Data Baru", "🗂️ Kelola Data", "🔁 Retraining Model"])
 
-        X_train_c, X_test_c, y_train_c, y_test_c = train_test_split(
-            X_scaled_clf if clf_model_choice in ["K-Nearest Neighbors (KNN)", "Support Vector Machine (SVM)"] else X_clf,
-            y_clf,
-            test_size=test_size_clf,
-            random_state=int(random_state_clf),
-            stratify=y_clf
-        )
+    with t1:
+        st.markdown(f"##### Masukkan Sampel Baru ({name}):")
+        with st.form("form_add_data", clear_on_submit=True):
+            vals = feature_inputs(base, feats, "rt_add")
+            target_val = None
+            if task == "regresi":
+                target_val = st.number_input("Target Value (Kontinu):", value=float(base["target"].median()))
+            elif task == "klasifikasi":
+                opts = list(range(len(tn))) if tn else [0, 1]
+                target_val = st.selectbox("Target Kelas:", opts, format_func=lambda x: tn[x] if tn else str(x))
 
-        # Inisialisasi Model
-        if clf_model_choice == "Logistic Regression":
-            model_clf = LogisticRegression(max_iter=300, random_state=int(random_state_clf))
-        elif clf_model_choice == "K-Nearest Neighbors (KNN)":
-            model_clf = KNeighborsClassifier(n_neighbors=k_val)
-        elif clf_model_choice == "Decision Tree":
-            model_clf = DecisionTreeClassifier(random_state=int(random_state_clf))
-        elif clf_model_choice == "Random Forest":
-            model_clf = RandomForestClassifier(n_estimators=100, random_state=int(random_state_clf))
-        else:
-            model_clf = SVC(probability=True, random_state=int(random_state_clf))
-
-        start_time_c = time.time()
-        model_clf.fit(X_train_c, y_train_c)
-        durasi_clf = time.time() - start_time_c
-
-        y_pred_c = model_clf.predict(X_test_c)
-
-        # Metrik
-        acc_c = accuracy_score(y_test_c, y_pred_c)
-        prec_c = precision_score(y_test_c, y_pred_c, average='weighted', zero_division=0)
-        rec_c = recall_score(y_test_c, y_pred_c, average='weighted', zero_division=0)
-        f1_c = f1_score(y_test_c, y_pred_c, average='weighted', zero_division=0)
-
-        st.success(f"✅ Model **{clf_model_choice}** berhasil ditraining dalam **{durasi_clf:.4f} detik**!")
-
-        mc1, mc2, mc3, mc4 = st.columns(4)
-        mc1.metric("Akurasi", f"{acc_c * 100:.2f}%")
-        mc2.metric("Precision", f"{prec_c:.3f}")
-        mc3.metric("Recall", f"{rec_c:.3f}")
-        mc4.metric("F1-Score", f"{f1_c:.3f}")
-
-        # Visualisasi Confusion Matrix & Report
-        c_sub1, c_sub2 = st.tabs(["🔥 Confusion Matrix Heatmap", "📄 Classification Report"])
-
-        with c_sub1:
-            cm = confusion_matrix(y_test_c, y_pred_c)
-            fig_cm = px.imshow(
-                cm,
-                text_auto=True,
-                labels=dict(x="Predicted Label", y="Actual Label", color="Count"),
-                x=target_names,
-                y=target_names,
-                color_continuous_scale="Blues",
-                template="plotly_dark"
-            )
-            fig_cm.update_layout(title="Confusion Matrix", height=430)
-            st.plotly_chart(fig_cm, use_container_width=True)
-
-        with c_sub2:
-            report_dict = classification_report(y_test_c, y_pred_c, target_names=target_names, output_dict=True)
-            df_report = pd.DataFrame(report_dict).transpose()
-            st.dataframe(df_report.style.format(precision=3), use_container_width=True)
-
-# ==============================================================================
-# TAB 3: CLUSTERING (UNSUPERVISED LEARNING)
-# ==============================================================================
-with tab_clustering:
-    st.header("🔮 Model Clustering (Unsupervised Learning)")
-    st.caption("Pengelompokan data tanpa label menggunakan K-Means, Agglomerative, dan PCA 2D.")
-
-    col_cl1, col_cl2 = st.columns([1, 2.5])
-
-    with col_cl1:
-        st.markdown("#### ⚙️ Konfigurasi Clustering")
-        cluster_dataset = st.selectbox(
-            "Pilih Dataset Unsupervised:",
-            ["Iris Features (Fitur Bunga)", "Wine Features (Karakteristik Anggur)", "Synthetic Clustered Blobs"],
-            key="cl_dataset"
-        )
-
-        cluster_algo = st.selectbox(
-            "Algoritma Clustering:",
-            ["K-Means Clustering", "Agglomerative (Hierarchical) Clustering", "DBSCAN"],
-            key="cl_algo"
-        )
-
-        if cluster_algo in ["K-Means Clustering", "Agglomerative (Hierarchical) Clustering"]:
-            n_clusters = st.slider("Jumlah Cluster (k):", min_value=2, max_value=8, value=3, key="k_cluster")
-        else:
-            eps_val = st.slider("Epsilon (Radius):", 0.1, 2.0, 0.6, 0.1)
-            min_samples = st.slider("Min Samples:", 2, 10, 5)
-
-        btn_cluster = st.button("🚀 Jalankan Analisis Klaster", key="btn_cl")
-
-    with col_cl2:
-        # Load dataset
-        if "Iris" in cluster_dataset:
-            data_raw = datasets.load_iris(as_frame=True)
-            X_clust = data_raw.data
-        elif "Wine" in cluster_dataset:
-            data_raw = datasets.load_wine(as_frame=True)
-            X_clust = data_raw.data
-        else:
-            X_blob, _ = datasets.make_blobs(n_samples=300, centers=4, n_features=4, random_state=42)
-            X_clust = pd.DataFrame(X_blob, columns=[f"Fitur_{i+1}" for i in range(4)])
-
-        # Standarisasi
-        X_cl_scaled = StandardScaler().fit_transform(X_clust)
-
-        # Eksekusi Algoritma
-        if cluster_algo == "K-Means Clustering":
-            clustering_model = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
-            labels = clustering_model.fit_predict(X_cl_scaled)
-        elif cluster_algo == "Agglomerative (Hierarchical) Clustering":
-            clustering_model = AgglomerativeClustering(n_clusters=n_clusters)
-            labels = clustering_model.fit_predict(X_cl_scaled)
-        else:
-            clustering_model = DBSCAN(eps=eps_val, min_samples=min_samples)
-            labels = clustering_model.fit_predict(X_cl_scaled)
-
-        # Evaluasi Silhouette & Davies-Bouldin
-        unique_labels = set(labels)
-        has_valid_clusters = len(unique_labels) > 1 and not (len(unique_labels) == 2 and -1 in unique_labels)
-
-        if has_valid_clusters:
-            sil_score = silhouette_score(X_cl_scaled, labels)
-            db_score = davies_bouldin_score(X_cl_scaled, labels)
-        else:
-            sil_score, db_score = 0.0, 0.0
-
-        st.success(f"✅ Analisis Klaster **{cluster_algo}** Selesai!")
-
-        cmet1, cmet2, cmet3 = st.columns(3)
-        cmet1.metric("Total Klaster Terbentuk", len([x for x in unique_labels if x != -1]))
-        cmet2.metric("Silhouette Score", f"{sil_score:.3f}", help="Mendekati 1.0 berarti pemisahan klaster sangat baik")
-        cmet3.metric("Davies-Bouldin Index", f"{db_score:.3f}", help="Semakin kecil nilainya semakin baik")
-
-        # Proyeksi 2D PCA untuk Visualisasi Klaster
-        pca = PCA(n_components=2)
-        X_pca = pca.fit_transform(X_cl_scaled)
-        df_pca = pd.DataFrame(X_pca, columns=["Komponen PCA 1", "Komponen PCA 2"])
-        df_pca["Cluster"] = [f"Klaster {lbl}" if lbl != -1 else "Noise/Outlier" for lbl in labels]
-
-        fig_cluster = px.scatter(
-            df_pca,
-            x="Komponen PCA 1",
-            y="Komponen PCA 2",
-            color="Cluster",
-            title=f"Visualisasi Proyeksi Klaster (PCA 2D) - Rasio Variansi: {pca.explained_variance_ratio_.sum()*100:.1f}%",
-            template="plotly_dark",
-            color_discrete_sequence=px.colors.qualitative.Bold
-        )
-        st.plotly_chart(fig_cluster, use_container_width=True)
-
-# ==============================================================================
-# TAB 4: MONGODB CRUD & RETRAINING
-# ==============================================================================
-with tab_retrain:
-    st.header("🍃 Integrasi Database MongoDB Atlas & Retraining")
-    st.caption("Tambah data sampel baru ke Cloud MongoDB, hapus data, dan latih ulang model secara real-time.")
-
-    col_m1, col_m2 = st.columns([1, 1.8])
-
-    with col_m1:
-        st.markdown("#### ➕ Tambah Data Iris Baru")
-        with st.form("form_insert_iris", clear_on_submit=True):
-            f_sepal_length = st.number_input("Sepal Length (cm):", min_value=1.0, max_value=10.0, value=5.1, step=0.1)
-            f_sepal_width = st.number_input("Sepal Width (cm):", min_value=1.0, max_value=10.0, value=3.5, step=0.1)
-            f_petal_length = st.number_input("Petal Length (cm):", min_value=0.5, max_value=10.0, value=1.4, step=0.1)
-            f_petal_width = st.number_input("Petal Width (cm):", min_value=0.1, max_value=5.0, value=0.2, step=0.1)
-            f_species = st.selectbox("Species Target:", ["setosa", "versicolor", "virginica"])
-            
-            btn_submit_iris = st.form_submit_button("💾 Simpan ke Database MongoDB")
-
-            if btn_submit_iris:
+            if st.form_submit_button("💾 Simpan Data ke MongoDB"):
                 new_doc = {
-                    "sepal_length": float(f_sepal_length),
-                    "sepal_width": float(f_sepal_width),
-                    "petal_length": float(f_petal_length),
-                    "petal_width": float(f_petal_width),
-                    "species": f_species,
-                    "timestamp": datetime.now()
+                    "key": key,
+                    "task": task,
+                    "dataset": name,
+                    "values": [float(v) for v in vals],
+                    "target": float(target_val) if target_val is not None else None,
+                    "created_at": datetime.now(timezone.utc),
                 }
-
-                if mongo_client:
-                    db = get_database(mongo_client)
-                    db.iris_db.insert_one(new_doc)
-                    st.success("✅ Berhasil menyimpan dokumen ke MongoDB Atlas!")
+                if db is not None:
+                    try:
+                        db.dataset_tambahan.insert_one(new_doc)
+                        st.success("✅ Data berhasil disimpan ke MongoDB Atlas!")
+                    except Exception as e:
+                        st.error(f"Gagal simpan ke MongoDB: {e}")
                 else:
-                    new_doc["_id"] = str(len(st.session_state.mock_iris_db) + 1)
-                    st.session_state.mock_iris_db.append(new_doc)
-                    st.info("ℹ️ Disimpan ke Local Memory Storage (MongoDB belum terkoneksi)")
+                    st.session_state.mock_dataset_tambahan.append(new_doc)
+                    st.info("ℹ️ Disimpan ke Local Storage (MongoDB belum terhubung)")
                 time.sleep(0.5)
                 st.rerun()
 
-    with col_m2:
-        st.markdown("#### 📊 Koleksi Data MongoDB: `test_db.iris_db`")
-
-        # Mengambil Data dari MongoDB
+    with t2:
         docs = []
-        if mongo_client:
+        if db is not None:
             try:
-                db = get_database(mongo_client)
-                docs = list(db.iris_db.find().sort("timestamp", -1))
-            except Exception as e:
-                st.error(f"Gagal mengambil data MongoDB: {e}")
+                docs = list(db.dataset_tambahan.find({"key": key}).sort("created_at", -1))
+            except Exception:
+                pass
         else:
-            docs = st.session_state.mock_iris_db
+            docs = [d for d in st.session_state.mock_dataset_tambahan if d.get("key") == key]
 
-        st.metric("Total Data Baru Tersimpan", len(docs))
-
-        if len(docs) > 0:
-            # Format DataFrame
-            display_docs = []
+        if docs:
+            rows_display = []
             for d in docs:
-                display_docs.append({
-                    "ID": str(d.get("_id")),
-                    "Sepal Length": d.get("sepal_length"),
-                    "Sepal Width": d.get("sepal_width"),
-                    "Petal Length": d.get("petal_length"),
-                    "Petal Width": d.get("petal_width"),
-                    "Species": d.get("species"),
-                    "Waktu": d.get("timestamp")
-                })
-            df_mongo = pd.DataFrame(display_docs)
-            st.dataframe(df_mongo, use_container_width=True)
+                row_dict = {"ID": str(d.get("_id", len(rows_display)+1))}
+                for idx, f in enumerate(feats):
+                    if idx < len(d.get("values", [])):
+                        row_dict[f] = d["values"][idx]
+                row_dict["Target"] = d.get("target")
+                rows_display.append(row_dict)
+            st.dataframe(pd.DataFrame(rows_display), use_container_width=True)
 
-            # Fitur Hapus Data Berdasarkan ID
-            col_del1, col_del2 = st.columns([2, 1])
-            with col_del1:
-                selected_del_id = st.selectbox("Pilih ID Dokumen untuk Dihapus:", [d["ID"] for d in display_docs])
-            with col_del2:
-                st.write("")
-                st.write("")
-                if st.button("🗑️ Hapus Dokumen"):
-                    if mongo_client:
-                        db = get_database(mongo_client)
-                        db.iris_db.delete_one({"_id": ObjectId(selected_del_id)})
-                        st.success(f"Dokumen {selected_del_id} berhasil dihapus dari MongoDB!")
-                    else:
-                        st.session_state.mock_iris_db = [d for d in st.session_state.mock_iris_db if str(d.get("_id")) != selected_del_id]
-                        st.success("Dokumen dihapus dari Local Storage!")
-                    time.sleep(0.5)
-                    st.rerun()
+            del_id = st.selectbox("Pilih ID Data untuk Dihapus:", [r["ID"] for r in rows_display])
+            if st.button("🗑️ Hapus Data Ini"):
+                if db is not None:
+                    try:
+                        db.dataset_tambahan.delete_one({"_id": ObjectId(del_id)})
+                        st.success("Data berhasil dihapus dari MongoDB Atlas!")
+                    except Exception as e:
+                        st.error(f"Gagal hapus: {e}")
+                else:
+                    st.session_state.mock_dataset_tambahan = [d for d in st.session_state.mock_dataset_tambahan if str(d.get("_id", "")) != del_id]
+                    st.success("Data dihapus dari memori!")
+                time.sleep(0.5)
+                st.rerun()
         else:
-            st.info("Belum ada data tambahan di database. Silakan isi form di samping untuk menambah sampel baru.")
+            st.info("Belum ada data tambahan untuk dataset ini.")
 
-    st.markdown("---")
-    # ==================== FITUR RETRAINING ====================
-    st.subheader("🔄 Retraining Model: Gabungkan Data Asli + Data MongoDB")
-    st.markdown("""
-    Fitur ini menggabungkan **150 sampel asli Scikit-Learn Iris** dengan **data tambahan dari MongoDB**,
-    kemudian melatih ulang model **Random Forest Classifier** secara otomatis.
-    """)
+    with t3:
+        st.markdown("##### Jalankan Retraining Menggunakan Semua Data")
+        st.write("Menggabungkan data asli + data baru, melatih ulang model, dan memperbarui metrik secara instan.")
+        if st.button("🚀 Retrain Model Sekarang", type="primary"):
+            df_full, n_ex, _, _ = get_training_df(task, name, use_extra=True)
+            with st.spinner("Melatih ulang model..."):
+                if task == "klasifikasi":
+                    X_f, y_f = df_full.drop(columns="target"), df_full["target"]
+                    Xtr, Xte, ytr, yte = train_test_split(X_f, y_f, test_size=0.25, random_state=42)
+                    rf = RandomForestClassifier(n_estimators=100, random_state=42).fit(Xtr, ytr)
+                    new_acc = accuracy_score(yte, rf.predict(Xte))
+                    metrics = {"Akurasi": new_acc}
+                elif task == "regresi":
+                    X_f, y_f = df_full.drop(columns="target"), df_full["target"]
+                    Xtr, Xte, ytr, yte = train_test_split(X_f, y_f, test_size=0.25, random_state=42)
+                    rg = RandomForestRegressor(n_estimators=100, random_state=42).fit(Xtr, ytr)
+                    new_r2 = r2_score(yte, rg.predict(Xte))
+                    metrics = {"R² Score": new_r2}
+                else:
+                    Xs_f = StandardScaler().fit_transform(df_full.drop(columns="target", errors="ignore"))
+                    km = KMeans(n_clusters=3, random_state=42).fit(Xs_f)
+                    metrics = {"Silhouette": silhouette_score(Xs_f, km.labels_)}
 
-    if st.button("🚀 Retrain Sekarang dengan Semua Data", type="primary"):
-        # 1. Dataset Iris bawaan (150 sampel)
-        iris_raw = datasets.load_iris()
-        df_base = pd.DataFrame(iris_raw.data, columns=["sepal_length", "sepal_width", "petal_length", "petal_width"])
-        df_base["species"] = [iris_raw.target_names[i] for i in iris_raw.target]
+                save_model_record(task, name, None, "Random Forest", metrics)
+                st.balloons()
+                st.success(f"🎉 **Retraining Berhasil!** Model diperbarui dengan total **{len(df_full)} sampel**.")
+                for k_met, v_met in metrics.items():
+                    st.metric(f"Metrik Terbaru ({k_met})", f"{v_met:.4f}")
 
-        # 2. Data tambahan dari MongoDB
-        if len(docs) > 0:
-            df_add = pd.DataFrame([
-                {
-                    "sepal_length": float(d["sepal_length"]),
-                    "sepal_width": float(d["sepal_width"]),
-                    "petal_length": float(d["petal_length"]),
-                    "petal_width": float(d["petal_width"]),
-                    "species": str(d["species"])
-                }
-                for d in docs
-            ])
-            df_combined = pd.concat([df_base, df_add], ignore_index=True)
-        else:
-            df_combined = df_base
+# ============================================================================
+# HALAMAN 6: DISKUSI KOMENTAR (INTEGRASI GROQ AI)
+# ============================================================================
+def page_komentar():
+    st.markdown('<h1 class="main-title-container">💬 <span class="gradient-text">Diskusi & Komentar Publik</span></h1>', unsafe_allow_html=True)
+    st.markdown("Fitur publik untuk berbagi ulasan. Setiap komentar otomatis dianalisis oleh **Groq AI (Llama 3.3)** untuk mendeteksi sentimen dan memberikan balasan ramah.")
 
-        # 3. Encoding target (setosa=0, versicolor=1, virginica=2)
-        mapping = {"setosa": 0, "versicolor": 1, "virginica": 2}
-        df_combined["target"] = df_combined["species"].map(mapping)
-        df_combined = df_combined.dropna(subset=["target"])
-
-        X_retrain = df_combined[["sepal_length", "sepal_width", "petal_length", "petal_width"]]
-        y_retrain = df_combined["target"].astype(int)
-
-        # 4. Split & Retrain
-        Xr_train, Xr_test, yr_train, yr_test = train_test_split(X_retrain, y_retrain, test_size=0.25, random_state=42)
-        rf_retrain = RandomForestClassifier(n_estimators=100, random_state=42)
-        rf_retrain.fit(Xr_train, yr_train)
-
-        # Evaluasi
-        yr_pred = rf_retrain.predict(Xr_test)
-        acc_retrain = accuracy_score(yr_test, yr_pred)
-
-        st.balloons()
-        st.success(f"🎉 **Retraining Berhasil!** Model dilatih dengan total **{len(df_combined)} sampel** (150 bawaan + {len(docs)} dari database).")
-
-        rm1, rm2, rm3 = st.columns(3)
-        rm1.metric("Total Sampel Training", len(df_combined))
-        rm2.metric("Akurasi Model Baru", f"{acc_retrain * 100:.2f}%")
-        rm3.metric("Peningkatan Kapasitas", f"+{len(docs)} data")
-
-        # Feature Importance
-        df_importance = pd.DataFrame({
-            "Fitur": ["Sepal Length", "Sepal Width", "Petal Length", "Petal Width"],
-            "Importance": rf_retrain.feature_importances_
-        }).sort_values(by="Importance", ascending=True)
-
-        fig_imp = px.bar(
-            df_importance,
-            x="Importance",
-            y="Fitur",
-            orientation="h",
-            title="Tingkat Kepentingan Fitur (Feature Importance - Random Forest)",
-            template="plotly_dark",
-            color="Importance",
-            color_continuous_scale="Viridis"
-        )
-        st.plotly_chart(fig_imp, use_container_width=True)
-
-# ==============================================================================
-# TAB 5: KOMENTAR & AI SENTIMEN (POWERED BY GROQ & MONGODB)
-# ==============================================================================
-with tab_komentar:
-    st.header("💬 Komentar Publik & Analisis Sentimen (Groq AI)")
-    st.caption("Fitur interaktif publik untuk memberikan ulasan. Groq LPU AI otomatis menganalisis sentimen dan memberikan tanggapan cerdas.")
-
-    col_k1, col_k2 = st.columns([1.1, 1.6])
-
-    with col_k1:
-        st.markdown("#### ✍️ Beri Komentar Baru")
-        with st.form("form_komentar_publik", clear_on_submit=True):
-            in_nama = st.text_input("Nama Lengkap / Inisial:", placeholder="Misal: Budi Santoso")
-            in_role = st.selectbox("Status / Peran:", ["Mahasiswa", "Dosen / Pengajar", "Praktisi Data Science", "Tamu / Publik"])
-            in_rating = st.slider("Rating Aplikasi:", 1, 5, 5, help="1 = Kurang, 5 = Sangat Bagus")
-            in_pesan = st.text_area("Pesan / Ulasan / Feedback:", placeholder="Tuliskan ulasan Anda mengenai aplikasi ini...")
-            
-            btn_kirim_komentar = st.form_submit_button("🚀 Kirim Komentar & Analisis AI")
-
-            if btn_kirim_komentar:
-                if in_nama and in_pesan:
-                    with st.spinner("🤖 Groq AI sedang menganalisis sentimen & menyiapkan respon cerdas..."):
-                        groq_key = get_groq_api_key()
-                        ai_res = analyze_comment_with_groq(in_pesan, groq_key)
-                        sentiment_val = ai_res.get("sentiment", "Positif 😊")
-                        reply_val = ai_res.get("reply", "Terima kasih banyak atas partisipasi dan ulasan Anda!")
-
-                    komentar_doc = {
-                        "nama": in_nama,
-                        "peran": in_role,
-                        "rating": int(in_rating),
-                        "komentar": in_pesan,
-                        "sentiment": sentiment_val,
-                        "ai_reply": reply_val,
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    c1, c2 = st.columns([1.1, 1.6])
+    with c1:
+        st.markdown("#### ✍️ Tulis Komentar")
+        with st.form("form_komentar", clear_on_submit=True):
+            nama = st.text_input("Nama Pengunjung:", placeholder="Misal: Budi Santoso")
+            komentar_text = st.text_area("Komentar / Ulasan:", placeholder="Tuliskan ulasan Anda mengenai dashboard ini...")
+            if st.form_submit_button("🚀 Kirim Komentar"):
+                if nama.strip() and komentar_text.strip():
+                    with st.spinner("🤖 Groq AI sedang menganalisis sentimen..."):
+                        res_ai = analyze_comment_ai(komentar_text)
+                    doc = {
+                        "nama": nama.strip(),
+                        "komentar": komentar_text.strip(),
+                        "sentiment": res_ai.get("sentiment", "Positif 😊"),
+                        "ai_reply": res_ai.get("reply", "Terima kasih atas ulasan Anda!"),
+                        "created_at": datetime.now(timezone.utc),
                     }
-
-                    if mongo_client:
+                    if db is not None:
                         try:
-                            db = get_database(mongo_client)
-                            db.komentar_publik.insert_one(komentar_doc)
-                            st.success("✅ Komentar berhasil dianalisis AI dan disimpan ke MongoDB!")
+                            db.komentar.insert_one(doc)
+                            st.success("✅ Komentar tersimpan di MongoDB Atlas!")
                         except Exception as e:
-                            st.error(f"Gagal simpan ke database: {e}")
+                            st.error(f"Gagal simpan: {e}")
                     else:
-                        st.session_state.mock_comments.insert(0, komentar_doc)
-                        st.success("✅ Komentar berhasil dianalisis AI dan ditambahkan ke daftar ulasan!")
+                        st.session_state.mock_komentar.insert(0, doc)
+                        st.success("✅ Komentar tersimpan di memori!")
                     time.sleep(0.5)
                     st.rerun()
                 else:
-                    st.warning("⚠️ Mohon isi Nama dan Pesan sebelum mengirim.")
+                    st.warning("Mohon isi Nama dan Komentar terlebih dahulu.")
 
-    with col_k2:
-        st.markdown("#### 📜 Daftar Ulasan Publik Terintegrasi AI")
-
-        # Ambil Komentar dari MongoDB
-        list_komentar = []
-        if mongo_client:
+    with c2:
+        st.markdown("#### 💬 Tanggapan & Ulasan Pengunjung")
+        docs = []
+        if db is not None:
             try:
-                db = get_database(mongo_client)
-                list_komentar = list(db.komentar_publik.find().sort("timestamp", -1))
+                docs = list(db.komentar.find().sort("created_at", -1).limit(40))
             except Exception:
-                list_komentar = st.session_state.mock_comments
+                pass
         else:
-            list_komentar = st.session_state.mock_comments
+            docs = st.session_state.mock_komentar
 
-        if len(list_komentar) > 0:
-            for item in list_komentar:
-                bintang = "⭐" * int(item.get("rating", 5))
-                sentimen = item.get("sentiment", "Positif 😊")
-                ai_reply = item.get("ai_reply", "")
-                
-                sentimen_badge_color = "#10B981" if "Positif" in sentimen else ("#F59E0B" if "Netral" in sentimen else "#EF4444")
-                
-                reply_html = ""
-                if ai_reply:
-                    reply_html = f"""
-                    <div class="ai-reply-box">
-                        <strong style="color:#F97316;">🤖 Respon Asisten AI (Groq LPU):</strong><br>
-                        <span>{ai_reply}</span>
-                    </div>
-                    """
-                
-                st.markdown(f"""
-                <div class="comment-card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <strong>{item.get('nama', 'Pengunjung')}</strong>
-                        <span style="font-size:0.8rem; color:#888;">{item.get('timestamp', '')}</span>
-                    </div>
-                    <div style="font-size:0.85rem; margin-top:2px; margin-bottom:6px;">
-                        <span style="color:#00d2ff;">{item.get('peran', 'Umum')}</span> &bull; {bintang} &bull; 
-                        <span style="background:{sentimen_badge_color}; color:white; padding:2px 8px; border-radius:10px; font-size:0.75rem;">
-                            Sentimen: {sentimen}
-                        </span>
-                    </div>
-                    <p style="margin-bottom:6px; font-size:0.95rem;">{item.get('komentar', '')}</p>
-                    {reply_html}
-                </div>
-                """, unsafe_allow_html=True)
+        if docs:
+            for d in docs:
+                sentimen = d.get("sentiment", "Positif 😊")
+                sent_color = "#10B981" if "Positif" in sentimen else ("#F59E0B" if "Netral" in sentimen else "#EF4444")
+                with st.chat_message("user"):
+                    st.markdown(f"**{d.get('nama', 'Pengunjung')}** &bull; <span style='background:{sent_color}; color:white; padding:2px 8px; border-radius:10px; font-size:0.75rem;'>Sentimen: {sentimen}</span>", unsafe_allow_html=True)
+                    st.write(d.get("komentar", ""))
+                    if d.get("ai_reply"):
+                        st.markdown(f"""
+                        <div class="ai-reply-box">
+                            <strong>🤖 Respon Asisten AI (Groq):</strong><br>
+                            <span>{d.get('ai_reply')}</span>
+                        </div>
+                        """, unsafe_allow_html=True)
         else:
-            st.info("Belum ada komentar dari publik. Jadilah yang pertama memberikan ulasan!")
+            st.info("Belum ada komentar tersimpan. Jadilah yang pertama memberikan ulasan!")
 
-# ==============================================================================
-# TAB 6: ASISTEN CHATBOT GROQ AI (LLAMA 3.3 LPU)
-# ==============================================================================
-with tab_groq:
-    st.header("🤖 Asisten Cerdas Groq AI (LPU Inference)")
+# ============================================================================
+# HALAMAN 7: ASISTEN GROQ AI
+# ============================================================================
+def page_groq():
+    st.markdown('<h1 class="main-title-container">🤖 <span class="gradient-text">Asisten Cerdas Groq AI</span></h1>', unsafe_allow_html=True)
     st.caption("Konsultasi interaktif seputar Machine Learning, Algoritma, Evaluasi, dan Arsitektur Cloud menggunakan inferensi super cepat Llama 3.3.")
 
-    groq_active_key = get_groq_api_key()
+    groq_key = get_groq_api_key()
 
-    if not groq_active_key:
-        st.warning("⚡ **Groq API Key belum dimasukkan.** Anda bisa memasukkannya di Sidebar atau di file `.streamlit/secrets.toml` untuk mengaktifkan kecerdasan penuh.")
-        st.markdown("""
-        > 💡 **Cara Mendapatkan Groq API Key Gratis (1 Menit):**
-        > 1. Buka [console.groq.com](https://console.groq.com)
-        > 2. Login dengan akun Google / GitHub
-        > 3. Klik menu **API Keys** -> **Create API Key**
-        > 4. Salin dan tempelkan ke kolom **GROQ_API_KEY** di Sidebar aplikasi ini.
-        """)
-
-    # Quick Prompt Chips
+    # Quick Prompts
     st.markdown("##### 💡 Contoh Pertanyaan Cepat:")
-    q_col1, q_col2, q_col3 = st.columns(3)
+    q1, q2, q3 = st.columns(3)
     quick_query = None
-    if q_col1.button("📈 Kapan pakai Regresi vs Klasifikasi?", use_container_width=True):
+    if q1.button("📈 Kapan pakai Regresi vs Klasifikasi?", use_container_width=True):
         quick_query = "Kapan kita sebaiknya menggunakan model Regresi dan kapan menggunakan Klasifikasi? Berikan contohnya."
-    if q_col2.button("🔮 Apa kelebihan K-Means Clustering?", use_container_width=True):
+    if q2.button("🔮 Apa fungsi Silhouette Score pada Clustering?", use_container_width=True):
         quick_query = "Jelaskan prinsip kerja K-Means Clustering dan metrik evaluasi Silhouette Score!"
-    if q_col3.button("🍃 Mengapa butuh MongoDB di Web ML?", use_container_width=True):
+    if q3.button("🍃 Mengapa butuh MongoDB di Web ML?", use_container_width=True):
         quick_query = "Mengapa kita menghubungkan MongoDB Atlas ke Streamlit untuk dataset dan komentar publik?"
 
-    # Render Chat History
-    for message in st.session_state.chat_history:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+    # Render History
+    for m in st.session_state.chat_history:
+        with st.chat_message(m["role"]):
+            st.markdown(m["content"])
 
-    # Chat Input
-    user_input = st.chat_input("Tanyakan apa saja seputar Machine Learning & Tugas Ini...")
-    actual_prompt = quick_query if quick_query else user_input
+    user_q = st.chat_input("Tanyakan apa saja seputar Machine Learning...")
+    actual_q = quick_query if quick_query else user_q
 
-    if actual_prompt:
-        st.session_state.chat_history.append({"role": "user", "content": actual_prompt})
+    if actual_q:
+        st.session_state.chat_history.append({"role": "user", "content": actual_q})
         with st.chat_message("user"):
-            st.markdown(actual_prompt)
+            st.markdown(actual_q)
 
         with st.chat_message("assistant"):
-            if groq_active_key and HAS_GROQ:
+            if groq_key and HAS_GROQ:
                 try:
-                    client = Groq(api_key=groq_active_key)
-                    system_instruction = (
-                        "Anda adalah asisten AI ahli Machine Learning untuk mahasiswa Universitas Kristen Satya Wacana (UKSW). "
-                        "Jawab dengan ramah, jelas, edukatif, dan menggunakan bahasa Indonesia yang baik. "
-                        "Bantu pengguna memahami konsep Regresi, Klasifikasi, Clustering, MongoDB, dan Streamlit."
-                    )
-                    messages_payload = [{"role": "system", "content": system_instruction}]
-                    # Ambil 6 pesan terakhir untuk konteks
-                    for m in st.session_state.chat_history[-6:]:
-                        messages_payload.append({"role": m["role"], "content": m["content"]})
-
+                    client = Groq(api_key=groq_key)
+                    sys_msg = "Anda adalah asisten AI ramah dan edukatif seputar Machine Learning, Regresi, Klasifikasi, Clustering, dan MongoDB Atlas."
+                    payload = [{"role": "system", "content": sys_msg}] + [
+                        {"role": m["role"], "content": m["content"]} for m in st.session_state.chat_history[-6:]
+                    ]
                     stream = client.chat.completions.create(
                         model="llama-3.3-70b-versatile",
-                        messages=messages_payload,
+                        messages=payload,
                         temperature=0.5,
                         max_tokens=600,
                         stream=True
                     )
-                    response_text = st.write_stream(stream)
-                    st.session_state.chat_history.append({"role": "assistant", "content": response_text})
+                    ans = st.write_stream(stream)
+                    st.session_state.chat_history.append({"role": "assistant", "content": ans})
                 except Exception as err:
-                    fallback_ans = f"Terjadi kendala koneksi ke Groq API: `{err}`. Pastikan kuota atau API key Anda valid."
-                    st.error(fallback_ans)
-                    st.session_state.chat_history.append({"role": "assistant", "content": fallback_ans})
+                    fallback_msg = f"Kendala koneksi Groq: `{err}`. Pastikan API key valid."
+                    st.error(fallback_msg)
+                    st.session_state.chat_history.append({"role": "assistant", "content": fallback_msg})
             else:
-                # Built-in intelligent response
-                fallback_ans = (
+                fallback_msg = (
                     "**Jawaban Asisten:**\n\n"
                     "- **Regresi** digunakan saat target bernilai kontinu (misal harga rumah, kadar glukosa).\n"
-                    "- **Klasifikasi** digunakan saat target berupa kategori diskrit (misal jenis spesies bunga Iris, deteksi tumor ganas/jinak).\n"
-                    "- **Clustering** adalah *unsupervised learning* untuk mengelompokkan data tanpa label berdasarkan kemiripan pola.\n"
-                    "- **MongoDB Atlas** berguna untuk menyimpan data sampel baru secara cloud, sehingga model dapat di-**retrain** sewaktu-waktu tanpa kehilangan data!\n\n"
-                    "*(💡 Masukkan `GROQ_API_KEY` di Sidebar untuk mendapatkan jawaban interaktif real-time menggunakan Llama 3.3)*"
+                    "- **Klasifikasi** digunakan saat target berupa kategori diskrit (misal spesies Iris, deteksi kanker ganas/jinak).\n"
+                    "- **Clustering** adalah *unsupervised learning* untuk mengelompokkan data tanpa label berdasarkan kemiripan pola fitur.\n"
+                    "- **MongoDB Atlas** berguna untuk menyimpan data sampel baru secara cloud, sehingga model dapat di-**retrain** secara real-time!\n\n"
+                    "*(💡 Masukkan `GROQ_API_KEY` di `.streamlit/secrets.toml` untuk mengaktifkan streaming interaktif Llama 3.3)*"
                 )
-                st.markdown(fallback_ans)
-                st.session_state.chat_history.append({"role": "assistant", "content": fallback_ans})
+                st.markdown(fallback_msg)
+                st.session_state.chat_history.append({"role": "assistant", "content": fallback_msg})
 
+# ============================================================================
+# 6. SIDEBAR NAVIGASI & ROUTER (SUPER BERSIH & ELEGAN)
+# ============================================================================
+PAGES = {
+    "🏠 Dashboard Beranda": page_home,
+    "📈 Regresi Linear": page_regresi,
+    "🧪 Klasifikasi": page_klasifikasi,
+    "🔵 Clustering": page_clustering,
+    "🔁 Update Data & Retraining": page_retrain,
+    "💬 Diskusi Komentar": page_komentar,
+    "🤖 Asisten Groq AI": page_groq,
+}
+
+st.sidebar.markdown("### 🧭 Menu Navigasi")
+choice = st.sidebar.radio(
+    "Navigasi",
+    list(PAGES.keys()),
+    label_visibility="collapsed",
+    key="nav_radio"
+)
+st.sidebar.divider()
+
+# Indikator Status Minimalis di Bawah Sidebar
+if db is None:
+    st.sidebar.error("🔴 MongoDB: Tidak Terhubung")
+    if st.sidebar.button("🔄 Coba Sambung Ulang"):
+        init_db.clear()
+        st.rerun()
+else:
+    st.sidebar.success("🟢 MongoDB: Terhubung")
+    n_k = db.komentar.count_documents({})
+    n_m = db.models.count_documents({})
+    st.sidebar.caption(f"💬 {n_k} komentar")
+    st.sidebar.caption(f"📦 {n_m} model tersimpan")
+
+groq_ready = bool(get_groq_api_key())
+if groq_ready:
+    st.sidebar.caption("⚡ Groq LPU: Aktif (Llama 3.3)")
+else:
+    st.sidebar.caption("⚡ Groq: Mode Offline")
+
+# Eksekusi Halaman Terpilih
+PAGES[choice]()
