@@ -77,226 +77,238 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom CSS - Luxury Cyberpunk & Hologram Glassmorphism
+# Custom CSS - Ultra Luxury Cyberpunk / Pro Developer "Hedon" Theme
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700;800&display=swap');
 
-    html, body, [class*="css"] {
-        font-family: 'Outfit', sans-serif;
-    }
-    
-    .stApp {
-        background: radial-gradient(1200px 600px at 50% -10%, rgba(121, 40, 202, 0.25), transparent),
-                    radial-gradient(900px 500px at 95% 85%, rgba(0, 245, 255, 0.15), transparent),
-                    #07090e;
-        color: #f1f5f9;
+    /* Global Typography */
+    html, body, [class*="css"], .stApp {
+        font-family: 'Plus Jakarta Sans', sans-serif !important;
+        background-color: #06080e !important;
+        background-image: 
+            radial-gradient(at 0% 0%, rgba(121, 40, 202, 0.22) 0px, transparent 50%),
+            radial-gradient(at 100% 0%, rgba(0, 245, 255, 0.18) 0px, transparent 50%),
+            radial-gradient(at 50% 100%, rgba(255, 0, 128, 0.15) 0px, transparent 50%) !important;
+        background-attachment: fixed !important;
+        color: #f8fafc !important;
     }
 
-    /* Gradient Typography */
-    .gradient-hero {
-        background: linear-gradient(135deg, #00F5FF 0%, #7928CA 45%, #FF007A 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-weight: 900;
-        letter-spacing: -1px;
-        filter: drop-shadow(0 0 25px rgba(0, 245, 255, 0.3));
-    }
-    .hero-title {
-        font-family: 'Space Grotesk', sans-serif;
-        font-size: 2.7rem;
+    /* Top Developer Badge */
+    .dev-badge-top {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: linear-gradient(90deg, rgba(255, 0, 128, 0.2), rgba(0, 245, 255, 0.2));
+        border: 1px solid rgba(0, 245, 255, 0.4);
+        padding: 5px 14px;
+        border-radius: 30px;
+        font-size: 0.75rem;
         font-weight: 800;
-        line-height: 1.15;
-        margin-bottom: 0.4rem;
-    }
-    .hero-subtitle {
-        color: #94a3b8;
-        font-size: 1.05rem;
-        font-weight: 400;
-        max-width: 850px;
-        line-height: 1.5;
-        margin-bottom: 1.5rem;
+        letter-spacing: 1.5px;
+        color: #00F5FF;
+        text-transform: uppercase;
+        box-shadow: 0 0 15px rgba(0, 245, 255, 0.3);
+        margin-bottom: 12px;
     }
 
-    /* Luxury Hologram Cards */
+    /* Luxury Hologram Title */
+    .hero-title-hedon {
+        font-family: 'Space Grotesk', sans-serif !important;
+        font-size: 2.9rem !important;
+        font-weight: 800 !important;
+        letter-spacing: -1px !important;
+        line-height: 1.15 !important;
+        background: linear-gradient(135deg, #00F5FF 0%, #A855F7 50%, #FF007A 100%) !important;
+        -webkit-background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        filter: drop-shadow(0 0 30px rgba(168, 85, 247, 0.4)) !important;
+        margin-bottom: 6px !important;
+    }
+    .hero-subtitle-hedon {
+        color: #94a3b8 !important;
+        font-size: 1.05rem !important;
+        font-weight: 400 !important;
+        line-height: 1.6 !important;
+        max-width: 900px !important;
+        margin-bottom: 1.8rem !important;
+    }
+
+    /* "Hedon" Luxury Glassmorphism Cards */
     .hedon-card {
-        background: rgba(15, 20, 32, 0.65) !important;
-        backdrop-filter: blur(20px) !important;
-        -webkit-backdrop-filter: blur(20px) !important;
-        border-radius: 18px !important;
-        padding: 24px !important;
+        background: rgba(13, 17, 28, 0.75) !important;
+        backdrop-filter: blur(25px) !important;
+        -webkit-backdrop-filter: blur(25px) !important;
+        border-radius: 20px !important;
+        padding: 26px !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
-        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6) !important;
+        box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.7) !important;
         position: relative !important;
         overflow: hidden !important;
-        transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        margin-bottom: 14px;
-        height: 100%;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+        height: 100% !important;
     }
     .hedon-card::before {
         content: '';
         position: absolute;
         top: 0; left: 0; right: 0; height: 3px;
-        background: linear-gradient(90deg, #FF007A, #7928CA, #00F5FF);
-        opacity: 0.9;
+        background: linear-gradient(90deg, #FF007A, #A855F7, #00F5FF);
     }
     .hedon-card:hover {
-        transform: translateY(-5px) !important;
-        border-color: rgba(0, 245, 255, 0.45) !important;
-        box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.8), 0 0 25px rgba(0, 245, 255, 0.25) !important;
+        transform: translateY(-8px) scale(1.02) !important;
+        border-color: rgba(0, 245, 255, 0.5) !important;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9), 0 0 30px rgba(0, 245, 255, 0.3) !important;
     }
+
     .card-badge {
         font-size: 0.7rem;
         font-weight: 800;
         letter-spacing: 1.5px;
         text-transform: uppercase;
-        padding: 3px 10px;
-        border-radius: 6px;
+        padding: 4px 12px;
+        border-radius: 8px;
         display: inline-block;
-        margin-bottom: 10px;
+        margin-bottom: 12px;
     }
-    .badge-reg { background: rgba(0, 245, 255, 0.15); color: #00F5FF; border: 1px solid rgba(0, 245, 255, 0.3); }
-    .badge-clf { background: rgba(255, 0, 122, 0.15); color: #FF007A; border: 1px solid rgba(255, 0, 122, 0.3); }
-    .badge-clu { background: rgba(121, 40, 202, 0.2); color: #C084FC; border: 1px solid rgba(121, 40, 202, 0.4); }
+    .badge-reg { background: rgba(0, 245, 255, 0.15); color: #00F5FF; border: 1px solid rgba(0, 245, 255, 0.4); box-shadow: 0 0 10px rgba(0, 245, 255, 0.2); }
+    .badge-clf { background: rgba(255, 0, 122, 0.15); color: #FF007A; border: 1px solid rgba(255, 0, 122, 0.4); box-shadow: 0 0 10px rgba(255, 0, 122, 0.2); }
+    .badge-clu { background: rgba(168, 85, 247, 0.2); color: #C084FC; border: 1px solid rgba(168, 85, 247, 0.4); box-shadow: 0 0 10px rgba(168, 85, 247, 0.2); }
 
     .hedon-title {
-        color: #f8fafc;
-        font-size: 1.25rem;
+        color: #ffffff;
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 1.35rem;
         font-weight: 700;
         margin-bottom: 8px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
+        letter-spacing: -0.3px;
     }
     .hedon-desc {
         color: #94a3b8;
         font-size: 0.92rem;
-        line-height: 1.5;
-        margin-bottom: 14px;
+        line-height: 1.6;
+        margin-bottom: 16px;
     }
 
-    /* Pro Buttons with Neon Sheen */
+    /* Pro Buttons (Hedon Neon Glow) */
     .stButton > button {
         background: linear-gradient(135deg, #7928CA 0%, #00F5FF 100%) !important;
         color: #ffffff !important;
         font-family: 'Space Grotesk', sans-serif !important;
-        font-weight: 700 !important;
+        font-weight: 800 !important;
+        font-size: 0.95rem !important;
         border: none !important;
-        border-radius: 12px !important;
-        padding: 0.65rem 1.4rem !important;
-        box-shadow: 0 4px 20px rgba(0, 245, 255, 0.3) !important;
+        border-radius: 14px !important;
+        padding: 0.75rem 1.6rem !important;
+        box-shadow: 0 4px 20px rgba(0, 245, 255, 0.35) !important;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
         letter-spacing: 0.5px !important;
+        text-transform: uppercase !important;
     }
     .stButton > button:hover {
-        transform: translateY(-2px) scale(1.02) !important;
-        box-shadow: 0 8px 30px rgba(121, 40, 202, 0.6), 0 0 20px rgba(0, 245, 255, 0.6) !important;
+        transform: translateY(-3px) scale(1.03) !important;
+        box-shadow: 0 10px 35px rgba(121, 40, 202, 0.7), 0 0 25px rgba(0, 245, 255, 0.7) !important;
+        color: #ffffff !important;
     }
 
-    /* Metric Cards with Glowing Border */
+    /* Metric Cards Luxury Edition */
     [data-testid="stMetric"] {
-        background: rgba(15, 20, 32, 0.7) !important;
-        backdrop-filter: blur(16px) !important;
-        border: 1px solid rgba(121, 40, 202, 0.35) !important;
-        border-radius: 16px !important;
-        box-shadow: 0 4px 25px rgba(0, 0, 0, 0.35) !important;
-        padding: 16px 20px !important;
-        transition: border-color 0.3s ease;
+        background: rgba(13, 17, 28, 0.8) !important;
+        backdrop-filter: blur(20px) !important;
+        border: 1px solid rgba(168, 85, 247, 0.35) !important;
+        border-radius: 18px !important;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5) !important;
+        padding: 18px 22px !important;
+        transition: all 0.3s ease !important;
     }
     [data-testid="stMetric"]:hover {
-        border-color: rgba(0, 245, 255, 0.5) !important;
+        border-color: rgba(0, 245, 255, 0.6) !important;
+        box-shadow: 0 12px 35px rgba(0, 245, 255, 0.2) !important;
     }
     [data-testid="stMetricValue"] {
         font-family: 'Space Grotesk', sans-serif !important;
-        font-size: 2.2rem !important;
+        font-size: 2.3rem !important;
         font-weight: 800 !important;
-        background: linear-gradient(90deg, #00F5FF, #7928CA) !important;
+        background: linear-gradient(90deg, #00F5FF, #FF007A) !important;
         -webkit-background-clip: text !important;
         -webkit-text-fill-color: transparent !important;
     }
 
-    /* Sidebar Navigation Highlighting */
+    /* Sidebar Navigation with Neon Highlight */
     div[data-testid="stSidebar"] {
-        background-color: #0b0e17 !important;
-        border-right: 1px solid rgba(255, 255, 255, 0.06);
+        background-color: #07090e !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
     div[data-testid="stSidebar"] div[role="radiogroup"] label {
-        background: rgba(255, 255, 255, 0.02);
-        border-radius: 12px;
-        padding: 10px 16px;
-        margin-bottom: 8px;
-        border: 1px solid rgba(255, 255, 255, 0.04);
-        transition: all 0.25s ease;
+        background: rgba(255, 255, 255, 0.02) !important;
+        border-radius: 14px !important;
+        padding: 11px 18px !important;
+        margin-bottom: 8px !important;
+        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        transition: all 0.25s ease !important;
     }
     div[data-testid="stSidebar"] div[role="radiogroup"] label:hover {
-        background: rgba(0, 245, 255, 0.08);
-        border-color: rgba(0, 245, 255, 0.35);
-        transform: translateX(4px);
+        background: rgba(0, 245, 255, 0.1) !important;
+        border-color: rgba(0, 245, 255, 0.5) !important;
+        transform: translateX(6px) !important;
+        box-shadow: 0 4px 20px rgba(0, 245, 255, 0.2) !important;
     }
 
     /* Glowing Pulsing Status */
     .pulse-online {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
         background: rgba(16, 185, 129, 0.12);
         color: #10B981;
-        border: 1px solid rgba(16, 185, 129, 0.35);
-        padding: 6px 14px;
+        border: 1px solid rgba(16, 185, 129, 0.4);
+        padding: 8px 18px;
         border-radius: 30px;
-        font-size: 0.8rem;
-        font-weight: 700;
-        letter-spacing: 0.5px;
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.8px;
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
     }
     .pulse-dot {
-        width: 8px;
-        height: 8px;
+        width: 10px;
+        height: 10px;
         border-radius: 50%;
         background: #10B981;
-        box-shadow: 0 0 12px #10B981;
+        box-shadow: 0 0 15px #10B981;
         animation: pulseAnimation 1.8s infinite;
     }
     @keyframes pulseAnimation {
         0% { transform: scale(0.95); opacity: 0.7; }
-        50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 16px #10B981; }
+        50% { transform: scale(1.35); opacity: 1; box-shadow: 0 0 20px #10B981; }
         100% { transform: scale(0.95); opacity: 0.7; }
-    }
-
-    /* AI Reply Box Modern */
-    .ai-reply-box {
-        background: linear-gradient(135deg, rgba(121, 40, 202, 0.15) 0%, rgba(0, 245, 255, 0.08) 100%);
-        border: 1px solid rgba(0, 245, 255, 0.25);
-        border-radius: 12px;
-        padding: 12px 16px;
-        margin-top: 10px;
-        font-size: 0.92rem;
     }
 
     /* Modern Tabs */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 10px;
+        gap: 12px;
     }
     .stTabs [data-baseweb="tab"] {
-        border-radius: 10px;
-        padding: 8px 18px;
+        border-radius: 12px;
+        padding: 10px 22px;
         background-color: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        font-weight: 600;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        font-weight: 700;
+        font-family: 'Space Grotesk', sans-serif;
     }
     .stTabs [aria-selected="true"] {
         background: linear-gradient(135deg, #7928CA 0%, #00F5FF 100%) !important;
         color: white !important;
         border: none !important;
-        box-shadow: 0 4px 15px rgba(0, 245, 255, 0.3) !important;
+        box-shadow: 0 4px 20px rgba(0, 245, 255, 0.4) !important;
     }
     
     .footer {
         text-align: center;
-        color: #475569;
+        color: #64748b;
         font-size: 0.85rem;
-        padding: 30px 0 15px 0;
-        border-top: 1px solid rgba(255, 255, 255, 0.05);
-        margin-top: 50px;
+        padding: 35px 0 15px 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        margin-top: 60px;
+        letter-spacing: 1px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -502,11 +514,12 @@ def feature_inputs(base, feats, prefix, ncols=3):
 # ============================================================================
 def page_home():
     st.markdown("""
-        <div class="hero-title">⚡ <span class="gradient-hero">NEXUS ML STUDIO</span></div>
-        <div class="hero-subtitle">
-            Platform predictive analytics & machine learning generasi mutakhir. 
-            Mengintegrasikan pipeline pemodelan terdistribusi dengan <b>MongoDB Atlas Cloud</b>, 
-            real-time retraining, dan akselerasi inferensi ultra-cepat <b>Groq LPU (Llama 3.3)</b>.
+        <div class="dev-badge-top">⚡ NEXUS QUANTUM CORE v3.0 &bull; ENTERPRISE PREDICTIVE INTELLIGENCE</div>
+        <div class="hero-title-hedon">NEXUS ML STUDIO</div>
+        <div class="hero-subtitle-hedon">
+            Arsitektur terdistribusi komputasi AI & Machine Learning generasi mutakhir. 
+            Terintegrasi dengan <b>MongoDB Atlas Cloud Database</b>, automated retraining pipeline, 
+            dan akselerasi inferensi ultra-responsif <b>Groq LPU (Llama 3.3 70B)</b>.
         </div>
     """, unsafe_allow_html=True)
 
