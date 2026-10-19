@@ -114,6 +114,7 @@ st.markdown("""
 
     /* Luxury Hologram Title */
     .hero-title-hedon {
+        text-align: center !important;
         font-family: 'Space Grotesk', sans-serif !important;
         font-size: 2.9rem !important;
         font-weight: 800 !important;
@@ -123,15 +124,18 @@ st.markdown("""
         -webkit-background-clip: text !important;
         -webkit-text-fill-color: transparent !important;
         filter: drop-shadow(0 0 30px rgba(168, 85, 247, 0.4)) !important;
-        margin-bottom: 6px !important;
+        margin-bottom: 10px !important;
     }
     .hero-subtitle-hedon {
+        text-align: center !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
         color: #94a3b8 !important;
         font-size: 1.05rem !important;
         font-weight: 400 !important;
         line-height: 1.6 !important;
         max-width: 900px !important;
-        margin-bottom: 1.8rem !important;
+        margin-bottom: 2rem !important;
     }
 
     /* "Hedon" Luxury Glassmorphism Cards */
@@ -513,9 +517,11 @@ def feature_inputs(base, feats, prefix, ncols=3):
 # ============================================================================
 def page_home():
     st.markdown("""
-        <div class="hero-title-hedon">🧠🤖 Dashboard Machine Learning</div>
-        <div class="hero-subtitle-hedon">
-            Aplikasi interaktif pemodelan <b>Regresi Linear</b>, <b>Klasifikasi</b>, dan <b>Clustering</b> terintegrasi <i>real-time</i> dengan <b>MongoDB Atlas</b> dan akselerasi AI <b>Groq LPU</b>.
+        <div style="text-align: center; margin-bottom: 25px;">
+            <div class="hero-title-hedon">🧠🤖 Dashboard Machine Learning</div>
+            <div class="hero-subtitle-hedon">
+                Aplikasi interaktif pemodelan <b>Regresi Linear</b>, <b>Klasifikasi</b>, dan <b>Clustering</b> terintegrasi <i>real-time</i> dengan <b>MongoDB Atlas</b> dan akselerasi AI <b>Groq LPU</b>.
+            </div>
         </div>
     """, unsafe_allow_html=True)
 
